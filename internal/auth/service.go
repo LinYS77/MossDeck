@@ -82,6 +82,13 @@ func (s *Service) SetCSRFManager(manager CSRFManager) {
 // Setup creates the personal owner account. It fails when setup is disabled or
 // once any user already exists, making initialization an explicit one-time action.
 func (s *Service) Setup(ctx context.Context, p SetupParams) (*User, error) {
+	n, err := s.store.CountUsers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if n > 0 {
+		return nil, ErrAlreadyInitialized
+	}
 	if !s.cfg.SetupEnabled {
 		return nil, ErrSetupDisabled
 	}
@@ -90,13 +97,6 @@ func (s *Service) Setup(ctx context.Context, p SetupParams) (*User, error) {
 	}
 	if err := validateSetup(p); err != nil {
 		return nil, err
-	}
-	n, err := s.store.CountUsers(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if n > 0 {
-		return nil, ErrAlreadyInitialized
 	}
 	hash, err := security.HashPassword(p.Password, s.cfg.BcryptCost)
 	if err != nil {
@@ -116,7 +116,11 @@ func (s *Service) Status(ctx context.Context) (initialized bool, setupEnabled bo
 	if err != nil {
 		return false, false, false, err
 	}
-	return n > 0, s.cfg.SetupEnabled, s.cfg.SetupToken != "", nil
+	initialized = n > 0
+	if initialized {
+		return true, false, false, nil
+	}
+	return false, s.cfg.SetupEnabled, s.cfg.SetupEnabled && s.cfg.SetupToken != "", nil
 }
 
 // Login authenticates the personal owner password and, on success, creates a session.

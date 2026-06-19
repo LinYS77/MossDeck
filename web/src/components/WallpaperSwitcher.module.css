@@ -73,6 +73,15 @@
   transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
 }
 
+.enableRow:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+.enableRow:disabled .toggle {
+  opacity: 0.5;
+}
+
 .enableRowOn {
   background: var(--green);
   border-color: var(--ink);
@@ -248,6 +257,60 @@
   width: 12px;
   height: 12px;
   color: var(--acid);
+}
+
+.deleteBtn {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 7px;
+  background: #ffffff;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  box-shadow: var(--shadow-hard-sm);
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 900;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition:
+    opacity var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease);
+}
+
+.cell:hover .deleteBtn,
+.deleteBtn:focus-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.deleteBtn:hover {
+  background: var(--danger);
+}
+
+.empty {
+  grid-column: 1 / -1;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: rgba(8, 17, 15, 0.045);
+  border: 1px dashed var(--glass-border);
+  color: var(--text-tertiary);
+  font-size: var(--fs-sm);
+  font-weight: 750;
+  text-align: center;
+}
+
+@media (hover: none) {
+  .deleteBtn {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (max-width: 720px) {

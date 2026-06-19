@@ -1,16 +1,17 @@
-# Production deployment with HTTPS via Caddy.
+# Production application container only.
+#
+# Bring your own reverse proxy / HTTPS layer (Caddy, Nginx, Traefik,
+# Cloudflare Tunnel, 1Panel, etc.) and forward traffic to the app service.
 #
 # Quick start:
 #   1. cp .env.example .env   # edit APP_SESSION_SECRET, APP_BASE_URL
-#   2. Edit Caddyfile → replace your-domain.example.com with your real domain
-#   3. Prefer initializing locally, then restore/copy the database to the server
-#      OR temporarily set APP_SETUP_ENABLED=true with a strong APP_SETUP_TOKEN.
-#   4. docker compose up -d and sign in at https://your-domain.example.com
+#   2. docker compose up -d
+#   3. Point your reverse proxy to http://app:8080 inside this compose network
+#      or publish the port explicitly if your proxy runs outside Docker.
 #
-# Data persists in Docker volumes (homepage_data, caddy_data, caddy_config).
+# Data persists in the Docker volume (homepage_data).
 
 services:
-  # ---- Application (Go API + static frontend SPA) ----
   app:
     build: .
     restart: unless-stopped
@@ -20,15 +21,16 @@ services:
       - APP_ENV=production
       - APP_SESSION_SECRET=${APP_SESSION_SECRET:?required}
       - APP_BASE_URL=${APP_BASE_URL:-https://localhost}
-      # Trust the internal Docker network so X-Forwarded-For works for rate limiting.
-      - APP_TRUSTED_PROXY_CIDRS=${APP_TRUSTED_PROXY_CIDRS:-172.16.0.0/12}
+      - APP_TRUSTED_PROXY_CIDRS=${APP_TRUSTED_PROXY_CIDRS:-}
       - APP_COOKIE_SECURE=true
       - APP_SETUP_ENABLED=${APP_SETUP_ENABLED:-false}
       - APP_SETUP_TOKEN=${APP_SETUP_TOKEN:-}
       - APP_LOG_FORMAT=json
     expose:
       - "8080"
-    # Health check verifies both liveness and database reachability.
+    # Uncomment if your reverse proxy runs on the host instead of this compose network.
+    # ports:
+    #   - "127.0.0.1:8080:8080"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
       interval: 30s
@@ -36,25 +38,5 @@ services:
       retries: 3
       start_period: 5s
 
-  # ---- Caddy reverse proxy with automatic TLS ----
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"   # HTTP/3 (QUIC)
-    volumes:
-      # Mount the Caddyfile read-only for configuration.
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      # Persistent storage for TLS certificates and Caddy state.
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      app:
-        condition: service_healthy
-
 volumes:
   homepage_data:
-  caddy_data:
-  caddy_config:

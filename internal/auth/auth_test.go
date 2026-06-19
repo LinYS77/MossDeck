@@ -258,7 +258,7 @@ func TestAuthStatusReportsInitialization(t *testing.T) {
 	}
 	var after statusResponse
 	env.data(t, &after)
-	if !after.Initialized {
+	if !after.Initialized || after.SetupEnabled || after.SetupTokenRequired {
 		t.Fatalf("unexpected auth status after setup: %+v", after)
 	}
 }
@@ -266,6 +266,8 @@ func TestAuthStatusReportsInitialization(t *testing.T) {
 func TestSetupOnlyOnce(t *testing.T) {
 	e := newTestEnv(t, defaultLimiter(), nil)
 	e.setupOwner(t, "StrongPass1!")
+	e.svc.cfg.SetupToken = "setup-token-123456"
+
 	rec, env := e.do(t, http.MethodPost, "/api/v1/auth/setup", map[string]string{
 		"password": "AnotherPass1!", "confirmPassword": "AnotherPass1!",
 	})

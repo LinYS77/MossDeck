@@ -18,7 +18,6 @@
 # Backups and local visual references
 /backups/
 /erro/
-/wallpaper/
 *.bak
 
 # Editor / OS noise

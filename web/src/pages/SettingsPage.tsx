@@ -15,12 +15,14 @@ import { exportBackup, importBackup } from "../lib/api/backup";
 import type { BackupExport, ImportSummary } from "../lib/api/backup";
 import { useI18n, SUPPORTED_LOCALES } from "../i18n/I18nProvider";
 import { ApiError } from "../lib/api/client";
+import { useQuickAccessLimit, type QuickAccessLimit } from "../lib/deviceSettings";
 import styles from "./SettingsPage.module.css";
 import { cn } from "../lib/cn";
 
 export function SettingsPage() {
   const navigate = useNavigate();
   const { t, locale, setLocale } = useI18n();
+  const { limit: quickAccessLimit, setLimit: setQuickAccessLimit, options: quickAccessOptions } = useQuickAccessLimit();
 
   const [exportBusy, setExportBusy] = useState(false);
   const [importBusy, setImportBusy] = useState(false);
@@ -128,6 +130,27 @@ export function SettingsPage() {
                   onClick={() => setLocale(l)}
                 >
                   {l === "zh-CN" ? "中文" : "English"}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* ---- Quick access count ---- */}
+          <section className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h2 className={styles.sectionTitle}>{t("settings.quickAccessTitle")}</h2>
+              <p className={styles.sectionDesc}>{t("settings.quickAccessDesc")}</p>
+            </div>
+            <div className={styles.choiceGrid}>
+              {quickAccessOptions.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  className={cn(styles.choiceBtn, quickAccessLimit === n && styles.choiceBtnActive)}
+                  onClick={() => setQuickAccessLimit(n as QuickAccessLimit)}
+                  aria-pressed={quickAccessLimit === n}
+                >
+                  {n}
                 </button>
               ))}
             </div>

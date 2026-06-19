@@ -1,28 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Wallpaper } from "./types";
 
-/** Built-in wallpaper registry. Slugs match files in web/public/wallpaper/. */
-export const BUILTIN_WALLPAPERS: Wallpaper[] = [
-  { slug: "foggy-forest", label: "Foggy Forest", src: "/wallpaper/foggy-forest.jpg", thumb: "/wallpaper/foggy-forest-thumb.jpg" },
-  { slug: "golden-hour", label: "Golden Hour", src: "/wallpaper/golden-hour.jpg", thumb: "/wallpaper/golden-hour-thumb.jpg" },
-  { slug: "city-in-the-clouds", label: "City in the Clouds", src: "/wallpaper/city-in-the-clouds.jpg", thumb: "/wallpaper/city-in-the-clouds-thumb.jpg" },
-  { slug: "summer-sea", label: "Summer Sea", src: "/wallpaper/summer-sea.jpg", thumb: "/wallpaper/summer-sea-thumb.jpg" },
-  { slug: "petals-of-the-moon", label: "Petals of the Moon", src: "/wallpaper/petals-of-the-moon.jpg", thumb: "/wallpaper/petals-of-the-moon-thumb.jpg" },
-  { slug: "sunset-ocean", label: "Sunset Ocean", src: "/wallpaper/sunset-ocean.jpg", thumb: "/wallpaper/sunset-ocean-thumb.jpg" },
-  { slug: "mountain-glow", label: "Mountain Glow", src: "/wallpaper/mountain-glow.jpg", thumb: "/wallpaper/mountain-glow-thumb.jpg" },
-  { slug: "spring-garden", label: "Spring Garden", src: "/wallpaper/spring-garden.jpg", thumb: "/wallpaper/spring-garden-thumb.jpg" },
-  { slug: "impression-sunrise", label: "Impression, Sunrise", src: "/wallpaper/impression-sunrise.jpg", thumb: "/wallpaper/impression-sunrise-thumb.jpg" },
-  { slug: "seine-spring", label: "Spring by the Seine", src: "/wallpaper/seine-spring.jpg", thumb: "/wallpaper/seine-spring-thumb.jpg" },
-];
-
-export const DEFAULT_WALLPAPER_SLUG = "foggy-forest";
-
 const STORAGE_KEY = "homepage.wallpaper";
 const CUSTOM_KEY = "homepage.wallpaper.custom";
 const WALLPAPER_CHANGE = "homepage:wallpaper-change";
 const WALLPAPER_CUSTOM_CHANGE = "homepage:wallpaper-custom-change";
-
-export const WALLPAPERS = BUILTIN_WALLPAPERS;
 
 function readCustomWallpapers(): Wallpaper[] {
   try {
@@ -46,22 +28,18 @@ function writeCustomWallpapers(wallpapers: Wallpaper[]) {
   window.dispatchEvent(new CustomEvent(WALLPAPER_CUSTOM_CHANGE, { detail: wallpapers }));
 }
 
-function allWallpapers(custom = readCustomWallpapers()): Wallpaper[] {
-  return [...custom, ...BUILTIN_WALLPAPERS];
-}
-
-function readStoredSlug(): string {
+function readStoredSlug(custom = readCustomWallpapers()): string {
   try {
     const v = window.localStorage.getItem(STORAGE_KEY);
-    if (v && allWallpapers().some((w) => w.slug === v)) return v;
+    if (v && custom.some((w) => w.slug === v)) return v;
   } catch {
-    /* ignore (private mode / disabled storage) */
+    /* ignore */
   }
-  return DEFAULT_WALLPAPER_SLUG;
+  return custom[0]?.slug ?? "";
 }
 
-export function wallpaperBySlug(slug: string, custom = readCustomWallpapers()): Wallpaper {
-  return allWallpapers(custom).find((w) => w.slug === slug) ?? BUILTIN_WALLPAPERS[0];
+export function wallpaperBySlug(slug: string, custom = readCustomWallpapers()): Wallpaper | null {
+  return custom.find((w) => w.slug === slug) ?? custom[0] ?? null;
 }
 
 function loadImage(file: File): Promise<HTMLImageElement> {
@@ -108,24 +86,41 @@ export async function createCustomWallpaper(file: File): Promise<Wallpaper> {
     thumb,
     custom: true,
   };
-  const next = [wallpaper, ...readCustomWallpapers()].slice(0, 8);
+  const next = [wallpaper, ...readCustomWallpapers()].slice(0, 12);
   writeCustomWallpapers(next);
   return wallpaper;
 }
 
+export function deleteCustomWallpaper(slug: string): Wallpaper[] {
+  const next = readCustomWallpapers().filter((w) => w.slug !== slug);
+  writeCustomWallpapers(next);
+  try {
+    const selected = window.localStorage.getItem(STORAGE_KEY);
+    if (selected === slug) {
+      if (next[0]) window.localStorage.setItem(STORAGE_KEY, next[0].slug);
+      else window.localStorage.removeItem(STORAGE_KEY);
+      window.dispatchEvent(new CustomEvent(WALLPAPER_CHANGE, { detail: next[0]?.slug ?? "" }));
+    }
+  } catch {
+    /* ignore */
+  }
+  return next;
+}
+
 export function useWallpaper(): {
-  wallpaper: Wallpaper;
+  wallpaper: Wallpaper | null;
   wallpapers: Wallpaper[];
   setSlug: (slug: string) => void;
 } {
   const [custom, setCustom] = useState<Wallpaper[]>(() => readCustomWallpapers());
   const [slug, setSlugState] = useState<string>(() => readStoredSlug());
-  const wallpapers = allWallpapers(custom);
+  const wallpaper = wallpaperBySlug(slug, custom);
 
   const setSlug = useCallback((next: string) => {
     setSlugState(next);
     try {
-      window.localStorage.setItem(STORAGE_KEY, next);
+      if (next) window.localStorage.setItem(STORAGE_KEY, next);
+      else window.localStorage.removeItem(STORAGE_KEY);
     } catch {
       /* ignore */
     }
@@ -134,12 +129,11 @@ export function useWallpaper(): {
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY && e.newValue) setSlugState(e.newValue);
+      if (e.key === STORAGE_KEY) setSlugState(e.newValue ?? "");
       if (e.key === CUSTOM_KEY) setCustom(readCustomWallpapers());
     };
     const onCustomSlug = (e: Event) => {
-      const next = (e as CustomEvent).detail as string;
-      if (next) setSlugState(next);
+      setSlugState(((e as CustomEvent).detail as string) ?? "");
     };
     const onCustomWallpapers = () => setCustom(readCustomWallpapers());
     window.addEventListener("storage", onStorage);
@@ -152,10 +146,9 @@ export function useWallpaper(): {
     };
   }, []);
 
-  return { wallpaper: wallpaperBySlug(slug, custom), wallpapers, setSlug };
+  return { wallpaper, wallpapers: custom, setSlug };
 }
 
-/* ---- Optional decorative wallpaper layer --------------------------- */
 const ENABLED_KEY = "homepage.wallpaper.enabled";
 const ENABLE_CHANGE = "homepage:wallpaper-enable-change";
 
@@ -187,10 +180,7 @@ export function useWallpaperEnabled(): {
     const onStorage = (e: StorageEvent) => {
       if (e.key === ENABLED_KEY && e.newValue != null) setEnabledState(e.newValue === "1");
     };
-    const onCustom = (e: Event) => {
-      const v = (e as CustomEvent).detail as boolean;
-      setEnabledState(v);
-    };
+    const onCustom = (e: Event) => setEnabledState((e as CustomEvent).detail as boolean);
     window.addEventListener("storage", onStorage);
     window.addEventListener(ENABLE_CHANGE, onCustom);
     return () => {

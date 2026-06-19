@@ -26,7 +26,6 @@ export function HomePage() {
 
   const isLoading = data.status === "loading";
   const hasBookmarks = data.groups.length > 0;
-  const hasReadLater = data.readLater.length > 0;
 
   return (
     <div className={styles.page}>
@@ -35,20 +34,24 @@ export function HomePage() {
         <section className={styles.hero}>
           <Clock />
           <SearchBar />
-          <div className={styles.quickLinks}>
-            <QuickLinks
-              items={data.quickLinks}
-              onRecordOpen={data.recordQuickLinkOpen}
-            />
-          </div>
+          {data.quickLinks.length > 0 ? (
+            <div className={styles.quickLinks}>
+              <QuickLinks
+                items={data.quickLinks}
+                onRecordOpen={data.recordQuickLinkOpen}
+              />
+            </div>
+          ) : null}
         </section>
 
         {/* Read later — a dedicated horizontal strip between hero and content */}
-        {hasReadLater || data.errors.readLater ? (
-          <section className={styles.readLaterStrip}>
-            <ReadLaterPreview items={data.readLater} onSeeAll={() => navigate("/read-later")} />
-          </section>
-        ) : null}
+        <section className={styles.readLaterStrip}>
+          <ReadLaterPreview
+            items={data.readLater}
+            onSeeAll={() => navigate("/read-later")}
+            onAdded={() => data.reload(true)}
+          />
+        </section>
 
         {/* Two-column: bookmarks (left) + widgets (right) */}
         <div className={styles.layout}>

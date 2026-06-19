@@ -8,6 +8,7 @@ import { listReadLater } from "../../lib/api/readLater";
 import type { BookmarkDTO, CategoryDTO } from "../../lib/api/bookmarks";
 import type { ReadLaterDTO } from "../../lib/api/readLater";
 import { useI18n } from "../../i18n/I18nProvider";
+import { useQuickAccessLimit } from "../../lib/deviceSettings";
 import {
   deriveQuickLinks,
   mapBookmarksToGroups,
@@ -33,7 +34,7 @@ export interface HomeData {
   readLater: ReadLaterItem[];
   /** Record a quick-link open so the click-count ordering stays fresh. */
   recordQuickLinkOpen: (id: string) => void;
-  reload: () => void;
+  reload: (silent?: boolean) => void;
 }
 
 const EMPTY: HomeDataState = {
@@ -56,6 +57,7 @@ interface HomeDataState {
 export function useHomeData(): HomeData {
   const [status, setStatus] = useState<HomeDataStatus>("loading");
   const { t } = useI18n();
+  const { limit: quickAccessLimit } = useQuickAccessLimit();
   const [data, setData] = useState<HomeDataState>(EMPTY);
   const [errors, setErrors] = useState<{
     bookmarks: string | null;
@@ -64,12 +66,12 @@ export function useHomeData(): HomeData {
 
   const inFlight = useRef<AbortController | null>(null);
 
-  const load = useCallback(() => {
+  const load = useCallback((silent = false) => {
     inFlight.current?.abort();
     const ac = new AbortController();
     inFlight.current = ac;
 
-    setStatus("loading");
+    if (!silent) setStatus("loading");
     setErrors({ bookmarks: null, readLater: null });
 
     // Categories are decorative grouping metadata; a failure just yields an
@@ -142,7 +144,7 @@ export function useHomeData(): HomeData {
   }, [load]);
 
   const groups = mapBookmarksToGroups(data.bookmarks, data.categories, t("common.uncategorized"));
-  const quickLinks = deriveQuickLinks(data.bookmarks, 6);
+  const quickLinks = deriveQuickLinks(data.bookmarks, quickAccessLimit);
   const readLaterView = mapReadLaterItems(data.readLater);
 
   // Fire-and-forget open recording for quick links. Failures (e.g. mock ids

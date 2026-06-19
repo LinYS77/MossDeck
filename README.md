@@ -73,7 +73,8 @@ A minimal self-hosting setup is included:
 
 - `Dockerfile`
 - `compose.yaml`
-- `Caddyfile`
+
+The compose file runs the Mossdeck app container only. Bring your own reverse proxy / HTTPS layer, such as Caddy, Nginx, Traefik, Cloudflare Tunnel, 1Panel, or a VPS panel.
 
 Important production settings:
 
@@ -108,7 +109,4 @@ Ignored local-only assets include:
 - `/data/` runtime database
 - `/backups/` local backups
 - `/erro/` screenshots/reference images
-- `/wallpaper/` large original wallpaper sources
 - `web/node_modules/` and `web/dist/`
-
-The optimized frontend wallpapers live in `web/public/wallpaper/` and are tracked.

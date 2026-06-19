@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { createCustomWallpaper, useWallpaper, useWallpaperEnabled } from "../lib/wallpapers";
+import { createCustomWallpaper, deleteCustomWallpaper, useWallpaper, useWallpaperEnabled } from "../lib/wallpapers";
 import { cn } from "../lib/cn";
 import { ImageIcon, CheckIcon, UploadIcon } from "./icons";
 import { useI18n } from "../i18n/I18nProvider";
@@ -47,6 +47,19 @@ export function WallpaperSwitcher() {
     }
   };
 
+  const handleDelete = (slug: string) => {
+    const active = wallpaper?.slug === slug;
+    const next = deleteCustomWallpaper(slug);
+    if (active) {
+      if (next[0]) {
+        setSlug(next[0].slug);
+      } else {
+        setSlug("");
+        setEnabled(false);
+      }
+    }
+  };
+
   return (
     <div className={styles.wrap} ref={wrapRef}>
       <button
@@ -70,8 +83,11 @@ export function WallpaperSwitcher() {
           <button
             type="button"
             className={cn(styles.enableRow, enabled && styles.enableRowOn)}
-            onClick={() => setEnabled(!enabled)}
+            onClick={() => {
+              if (enabled || wallpapers.length > 0) setEnabled(!enabled);
+            }}
             aria-pressed={enabled}
+            disabled={!enabled && wallpapers.length === 0}
           >
             <span className={styles.enableLabel}>
               壁纸背景
@@ -103,8 +119,8 @@ export function WallpaperSwitcher() {
           </button>
 
           <div className={styles.grid}>
-            {wallpapers.map((w) => {
-              const active = enabled && w.slug === wallpaper.slug;
+            {wallpapers.length > 0 ? wallpapers.map((w) => {
+              const active = enabled && wallpaper?.slug === w.slug;
               return (
                 <button
                   key={w.slug}
@@ -130,9 +146,31 @@ export function WallpaperSwitcher() {
                       <CheckIcon className={styles.checkIcon} />
                     </span>
                   ) : null}
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className={styles.deleteBtn}
+                    aria-label={t("wallpaper.delete")}
+                    title={t("wallpaper.delete")}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(w.slug);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDelete(w.slug);
+                      }
+                    }}
+                  >
+                    ×
+                  </span>
                 </button>
               );
-            })}
+            }) : (
+              <p className={styles.empty}>{t("wallpaper.empty")}</p>
+            )}
           </div>
         </div>
       ) : null}

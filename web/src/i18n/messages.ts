@@ -170,6 +170,8 @@ const en: Messages = {
   "settings.title": "Settings",
   "settings.description": "Export your bookmarks, read-later items, categories, and tags as a JSON file. Import a previously exported backup to restore or merge data. Passwords and sessions are never included.",
   "settings.language": "Language",
+  "settings.quickAccessTitle": "Quick access count",
+  "settings.quickAccessDesc": "Stored on this device, so desktop and phone can use different counts.",
   "settings.exportTitle": "Export backup",
   "settings.exportDesc": "Download all your data as a JSON file. Safe to store as a backup.",
   "settings.downloadBackup": "Download backup",
@@ -279,10 +281,19 @@ const en: Messages = {
   "wallpaper.title": "Background",
   "wallpaper.upload": "Upload wallpaper",
   "wallpaper.uploadHint": "Stored in this browser",
+  "wallpaper.delete": "Delete wallpaper",
+  "wallpaper.empty": "Upload a wallpaper to enable this layer",
 
   // read-later preview
   "readlaterPreview.title": "Read later",
   "readlaterPreview.seeAll": "See all",
+  "readlaterPreview.addPlaceholder": "Paste a URL to save for later…",
+  "readlaterPreview.add": "Add",
+  "readlaterPreview.adding": "Adding…",
+  "readlaterPreview.empty": "No read-later items yet. Paste a link above to start.",
+  "readlaterPreview.urlRequired": "Paste a URL first.",
+  "readlaterPreview.urlInvalid": "Please enter a valid URL.",
+  "readlaterPreview.addFailed": "Could not add this link.",
 
   // import result
   "import.resultTitle": "Import complete",
@@ -495,6 +506,8 @@ const zhCN: Messages = {
   "settings.title": "设置",
   "settings.description": "导出书签、稍后再看、分类和标签为 JSON 文件。导入之前导出的备份以恢复或合并数据。密码和会话不会被导出。",
   "settings.language": "语言",
+  "settings.quickAccessTitle": "快捷入口数量",
+  "settings.quickAccessDesc": "保存在当前设备，因此电脑和手机可以使用不同数量。",
   "settings.exportTitle": "导出备份",
   "settings.exportDesc": "下载所有数据为 JSON 文件，适合作为备份保存。",
   "settings.downloadBackup": "下载备份",
@@ -604,10 +617,19 @@ const zhCN: Messages = {
   "wallpaper.title": "背景",
   "wallpaper.upload": "上传壁纸",
   "wallpaper.uploadHint": "保存在当前浏览器",
+  "wallpaper.delete": "删除壁纸",
+  "wallpaper.empty": "上传一张壁纸后即可启用背景层",
 
   // read-later preview
   "readlaterPreview.title": "稍后再看",
   "readlaterPreview.seeAll": "查看全部",
+  "readlaterPreview.addPlaceholder": "粘贴链接，稍后再看…",
+  "readlaterPreview.add": "添加",
+  "readlaterPreview.adding": "添加中…",
+  "readlaterPreview.empty": "还没有稍后读内容。粘贴一个链接开始。",
+  "readlaterPreview.urlRequired": "请先粘贴链接。",
+  "readlaterPreview.urlInvalid": "请输入有效链接。",
+  "readlaterPreview.addFailed": "添加链接失败。",
 
   // import result
   "import.resultTitle": "导入完成",

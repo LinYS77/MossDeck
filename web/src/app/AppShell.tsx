@@ -36,6 +36,7 @@ function AppFrame() {
 export function AppShell() {
   const { wallpaper } = useWallpaper();
   const { enabled } = useWallpaperEnabled();
+  const wallpaperOn = enabled && !!wallpaper;
 
   // Drive both pointer treatments: the vivid cyan beam on the plain paper
   // canvas, and the restrained shadow lens on the wallpaper canvas.
@@ -57,11 +58,11 @@ export function AppShell() {
       window.removeEventListener("pointermove", onMove);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [enabled]);
+  }, [wallpaperOn]);
 
   return (
     <>
-      {enabled ? (
+      {wallpaperOn && wallpaper ? (
         <div
           className="app-bg"
           style={{ backgroundImage: `url(${wallpaper.src})` }}
@@ -71,14 +72,14 @@ export function AppShell() {
 
       {/* Restrained cursor shadow on wallpaper mode — replaces the failed
           distortion experiment with a quiet depth cue. */}
-      {enabled ? <div className="app-bg__shadow" aria-hidden /> : null}
+      {wallpaperOn ? <div className="app-bg__shadow" aria-hidden /> : null}
       {/* Dense analogue-film grain over the wallpaper. */}
-      {enabled ? <div className="app-bg__grain" aria-hidden /> : null}
+      {wallpaperOn ? <div className="app-bg__grain" aria-hidden /> : null}
       {/* Grid + cursor beam on the PLAIN paper canvas. When a wallpaper is on:
           grid lines, static brand glows, and cursor beam are all disabled. */}
       <div
         className="app-bg__grid"
-        style={!enabled
+        style={!wallpaperOn
           ? undefined
           : ({
               "--bg-beam-current": "var(--bg-beam-wallpaper)",
