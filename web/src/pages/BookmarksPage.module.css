@@ -1,0 +1,348 @@
+.page {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1 1 auto;
+}
+
+/* ---- Page head ---- */
+.pageHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding-top: var(--space-2);
+}
+
+.headLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-xl);
+  font-weight: 800;
+  letter-spacing: var(--tracking-tight);
+}
+
+.titleIcon {
+  width: 22px;
+  height: 22px;
+  color: var(--accent-1);
+}
+
+.subtitle {
+  margin-top: 2px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: capitalize;
+}
+
+.headActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.btnLabel {
+  /* hidden on very small screens to keep icons tappable */
+}
+
+/* ---- Toolbar (search) ---- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.search {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: var(--space-4);
+  width: 18px;
+  height: 18px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: var(--space-3) var(--space-4) var(--space-3) calc(var(--space-4) + 26px);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  outline: none;
+  box-shadow: var(--shadow-hard-sm);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.searchInput::placeholder {
+  color: var(--text-faint);
+}
+
+.searchInput:focus {
+  border-color: var(--blue);
+  box-shadow: var(--shadow-hard-sm), 0 0 0 3px rgba(49, 92, 255, 0.16);
+}
+
+.filterToggle {
+  display: none;
+}
+
+/* ---- Layout: rail + list ---- */
+.layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+  margin-top: var(--space-5);
+}
+
+.rail {
+  position: sticky;
+  top: calc(var(--topbar-h) + var(--space-4));
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--blur)) saturate(var(--saturate));
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--saturate));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-md), var(--shadow-inset);
+}
+
+.listPanel {
+  min-width: 0;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  transition: opacity var(--dur) var(--ease);
+  border-radius: var(--radius-lg);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur)) saturate(var(--saturate));
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--saturate));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-md), var(--shadow-inset);
+}
+
+.listColLoading {
+  opacity: 0.5;
+}
+
+/* ---- Batch action bar ----
+   One fixed-height row: never grows/shrinks when buttons appear/disappear,
+   so selecting items never causes a layout jump. */
+.batchBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: var(--space-3);
+  min-height: 56px;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--ink);
+  box-shadow: var(--shadow-hard-sm);
+}
+
+.batchCount {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.batchControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: none;
+}
+
+.batchLink {
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  color: var(--accent-3);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
+}
+
+.batchLink:disabled {
+  color: var(--text-faint);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (hover: hover) {
+  .batchLink:not(:disabled):hover {
+    color: var(--text-primary);
+  }
+}
+
+.batchClear {
+  display: inline-flex;
+}
+
+.batchActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+}
+
+.batchBtnLabel {
+  display: inline;
+}
+
+.batchBusy {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text-tertiary);
+  padding-left: var(--space-2);
+  white-space: nowrap;
+}
+
+/* ---- Banner (errors) ---- */
+.banner {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--danger-ink);
+  background: rgba(255, 93, 143, 0.12);
+  border: 1px solid var(--danger);
+}
+
+/* ---- List + skeleton ---- */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.skeletonList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ---- Pagination ---- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+}
+
+.pageInfo {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Manage tabs ---- */
+.manageTabs {
+  display: inline-flex;
+  margin-bottom: var(--space-4);
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.manageTab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: calc(var(--radius-md) - 4px);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  color: var(--text-tertiary);
+  transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+
+.manageTabIcon {
+  width: 15px;
+  height: 15px;
+}
+
+@media (hover: hover) {
+  .manageTab:hover {
+    color: var(--text-secondary);
+  }
+}
+
+.manageTabActive {
+  color: var(--ink);
+  background: var(--green);
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: var(--space-5);
+  }
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rail {
+    display: none;
+  }
+  .filterToggle {
+    display: inline-flex;
+    flex: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .title {
+    font-size: var(--fs-lg);
+  }
+  .btnLabel {
+    display: none;
+  }
+  .headActions {
+    gap: var(--space-1);
+  }
+  .batchBtnLabel {
+    display: none;
+  }
+}

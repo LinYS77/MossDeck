@@ -1,0 +1,153 @@
+.group {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  /* The GlassPanel base already supplies the white-glass fill, ink hairline
+     and soft shadow. Keep this modifier layout-only. */
+  break-inside: avoid;
+  margin-bottom: var(--space-5);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.iconWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  background: var(--acid);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  box-shadow: var(--shadow-hard-sm);
+}
+
+.icon {
+  width: 19px;
+  height: 19px;
+}
+
+.titles {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name {
+  font-size: var(--fs-base);
+  font-weight: 800;
+  letter-spacing: var(--tracking-tight);
+}
+
+.count {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  margin: 0;
+  border-radius: var(--radius-md);
+  /* Solid white item card inside the big blurred group panel. Same card
+     language as the bookmark management page. */
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+
+@media (hover: hover) {
+  .item:hover {
+    border-color: var(--card-border-hover);
+    box-shadow: var(--card-shadow-hover);
+  }
+  .item:hover .ext {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.favicon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--line);
+  color: var(--text-secondary);
+}
+
+.itemBody {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.itemTitle {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemDomain {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ext {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  color: var(--text-tertiary);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.grid {
+  columns: 300px 2;
+  column-gap: var(--space-4);
+}
+
+@media (max-width: 720px) {
+  .grid {
+    columns: 1;
+    column-gap: var(--space-4);
+  }
+  .group {
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+}

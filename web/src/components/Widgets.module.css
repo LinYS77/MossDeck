@@ -1,0 +1,94 @@
+.panel {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Weather */
+.weatherTop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.weatherIcon {
+  width: 44px;
+  height: 44px;
+  color: var(--accent-1);
+  filter: drop-shadow(0 4px 12px rgba(53, 242, 154, 0.35));
+}
+
+.temp {
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.deg {
+  font-size: 0.6em;
+  vertical-align: top;
+  opacity: 0.8;
+}
+
+.cond {
+  font-size: var(--fs-sm);
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.weatherFoot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  padding-top: var(--space-3);
+  border-top: 1px solid rgba(8, 17, 15, 0.070);
+}
+
+.spacer {
+  opacity: 0.5;
+}
+
+/* Notes */
+.notesHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-tertiary);
+}
+
+.notesIcon {
+  width: 18px;
+  height: 18px;
+}
+
+.notesTitle {
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.notesBody {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+  .panel {
+    padding: var(--space-4);
+  }
+  .weatherIcon {
+    width: 40px;
+    height: 40px;
+  }
+  .temp {
+    font-size: var(--fs-xl);
+  }
+}

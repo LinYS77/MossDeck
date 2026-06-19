@@ -1,0 +1,58 @@
+# Production deployment with HTTPS via Caddy.
+#
+# Quick start:
+#   1. cp .env.example .env   # edit APP_SESSION_SECRET, APP_BASE_URL
+#   2. Edit Caddyfile → replace your-domain.example.com with your real domain
+#   3. Initialize the database locally (development setup), then restore/copy it to the server
+#   4. docker compose up -d and sign in at https://your-domain.example.com
+#
+# Data persists in Docker volumes (homepage_data, caddy_data, caddy_config).
+
+services:
+  # ---- Application (Go API + static frontend SPA) ----
+  app:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - homepage_data:/data
+    environment:
+      - APP_ENV=production
+      - APP_SESSION_SECRET=${APP_SESSION_SECRET:?required}
+      - APP_BASE_URL=${APP_BASE_URL:-https://localhost}
+      # Trust the internal Docker network so X-Forwarded-For works for rate limiting.
+      - APP_TRUSTED_PROXY_CIDRS=${APP_TRUSTED_PROXY_CIDRS:-172.16.0.0/12}
+      - APP_COOKIE_SECURE=true
+      - APP_SETUP_ENABLED=false
+      - APP_LOG_FORMAT=json
+    expose:
+      - "8080"
+    # Health check verifies both liveness and database reachability.
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  # ---- Caddy reverse proxy with automatic TLS ----
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3 (QUIC)
+    volumes:
+      # Mount the Caddyfile read-only for configuration.
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Persistent storage for TLS certificates and Caddy state.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  homepage_data:
+  caddy_data:
+  caddy_config:

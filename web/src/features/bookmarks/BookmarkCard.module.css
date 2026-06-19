@@ -1,0 +1,227 @@
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 64px;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  /* Solid white item card living INSIDE the big blurred list panel. Clean
+     hairline edge, no soft shadow, no translucency — the outer panel carries
+     the blur so this reads as a crisp block. Hover = ink border + a small
+     hard offset shadow (a focused/picked feel, not floating). */
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  transition:
+    opacity var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+
+@media (hover: hover) {
+  .card:hover {
+    border-color: var(--card-border-hover);
+    box-shadow: var(--card-shadow-hover);
+  }
+}
+
+.trashed {
+  opacity: 0.62;
+}
+
+/* ---- Multi-select ---- */
+.selected {
+  background: var(--card-bg);
+  border-color: var(--ink);
+  box-shadow: var(--shadow-hard-sm);
+}
+
+.checkWrap {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.checkbox {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.checkMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid var(--glass-border-strong);
+  background: rgba(8, 17, 15, 0.040);
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.checkMark::after {
+  content: "";
+  display: none;
+  width: 8px;
+  height: 5px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg) translateY(-1px);
+}
+
+.checkbox:checked + .checkMark {
+  background: var(--accent-1);
+  border-color: var(--ink);
+}
+
+.checkbox:checked + .checkMark::after {
+  display: block;
+}
+
+/* ---- Main body ---- */
+.main {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+}
+
+/* Unified muted badge — no per-domain rainbow. */
+.badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--line);
+  letter-spacing: 0.02em;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.flag {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+
+.flagPinned {
+  color: var(--accent-1);
+}
+
+.flagFav {
+  color: var(--accent-gold);
+  fill: var(--accent-gold);
+}
+
+.title {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.domain {
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.desc {
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: var(--space-1);
+}
+
+.tag {
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--line);
+}
+
+.tagMore {
+  font-size: 0.65rem;
+  color: var(--text-faint);
+  align-self: center;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+@media (hover: hover) {
+  .card:hover .actions,
+  .card:focus-within .actions {
+    opacity: 1;
+  }
+}
+
+/* Mobile: always show actions, stack items less aggressively */
+@media (max-width: 720px) {
+  .card {
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+  }
+  .actions {
+    opacity: 1;
+  }
+  .desc {
+    display: none;
+  }
+}

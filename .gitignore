@@ -1,0 +1,33 @@
+# Binaries
+/bin/
+/dist/
+*.exe
+
+# Local environment overrides
+.env
+.env.local
+
+# SQLite database and runtime data
+/data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Backups and local visual references
+/backups/
+/erro/
+/wallpaper/
+*.bak
+
+# Editor / OS noise
+.idea/
+.vscode/
+.DS_Store
+*.swp
+
+# Frontend
+web/node_modules/
+web/dist/
+web/.vite/

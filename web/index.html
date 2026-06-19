@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f6f9f7" />
+    <meta
+      name="description"
+      content="A personal homepage / new-tab page with bookmarks, read-later and a neo-brutalist light UI."
+    />
+    <link rel="icon" type="image/svg+xml" href="/brand/mossdeck.svg" />
+    <link rel="apple-touch-icon" href="/brand/logo.png" />
+    <title>Mossdeck</title>
+
+    <!-- Sora via Google Fonts with system fallback. System fonts render first;
+         Sora swaps in when available. Remove this block to go fully offline. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Inline theme colour prevents a dark flash before CSS/background loads. -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #f6f9f7;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

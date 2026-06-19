@@ -1,0 +1,250 @@
+/* =========================================================================
+   theme.css — design tokens
+   Visual language: neo-brutalist light. Off-white paper background, near-black
+   ink, crisp hairline borders, solid offset (hard) shadows, acid / green /
+   cyan / blue / pink accents used as punctuation — never flooded. Sora
+   display type at heavy weights. Wallpaper is an optional decorative layer;
+   by default the canvas is a calm paper + faint grid + soft glows + a cursor
+   beam.
+   The single source of truth for colour, type, spacing, radius, shadow, and
+   motion. Components consume these via var(--token). Tweak the look of the
+   whole app from here.
+   ========================================================================= */
+
+:root {
+  /* ---- Colour: brand palette ----------------------------------------- */
+  /* Paper base, ink type, hairline rules, white-glass surfaces, acid accents. */
+  --bg: #f6f9f7;
+  --ink: #08110f;
+  --muted: #64706c;
+  --line: rgba(8, 17, 15, 0.12);
+  --line-strong: rgba(8, 17, 15, 0.2);
+  --soft: rgba(255, 255, 255, 0.72);
+
+  --green: #35f29a;
+  --acid: #dfff3f;
+  --cyan: #3edbff;
+  --blue: #315cff;
+  --pink: #ff6d9f;
+
+  /* ---- Colour: surfaces & glass -------------------------------------- */
+  /* White glass panels on paper. Strong = near-opaque for top bars / lists. */
+  --glass-bg: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.82) 0%,
+    rgba(255, 255, 255, 0.66) 100%
+  );
+  --glass-bg-strong: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.94) 0%,
+    rgba(255, 255, 255, 0.84) 100%
+  );
+  --glass-bg-subtle: rgba(255, 255, 255, 0.56);
+
+  --surface-bg: rgba(255, 255, 255, 0.76);
+  --surface-bg-strong: rgba(255, 255, 255, 0.94);
+  --surface-bg-hover: rgba(255, 255, 255, 0.96);
+  --frosted-bg: var(--surface-bg);
+  /* "Card white" — a near-opaque solid white used for the small item cards
+     that live INSIDE a big blurred glass panel (bookmark cards, home rows,
+     read-later cards). Deliberately NOT translucent: only the outer panel
+     carries the blur, so inner cards read as crisp solid blocks with clean
+     hairline edges (Ravenaiworld-style layering: paper -> big glass panel ->
+     solid white item cards). Hover swaps the hairline to ink + a tiny hard
+     offset shadow for a "focused / picked" feel rather than floating. */
+  --card-bg: rgba(255, 255, 255, 0.92);
+  --card-border: var(--line);
+  --card-border-hover: var(--ink);
+  --card-shadow: none;
+  --card-shadow-hover: var(--shadow-hard-sm);
+
+  --glass-border: rgba(8, 17, 15, 0.12);
+  --glass-border-strong: rgba(8, 17, 15, 0.22);
+  --glass-highlight: rgba(255, 255, 255, 0.85); /* top inset sheen */
+
+  --surface-border: rgba(8, 17, 15, 0.12);
+  --surface-border-strong: rgba(8, 17, 15, 0.22);
+  --surface-shadow-sm: 0 8px 22px rgba(8, 17, 15, 0.08);
+  --surface-shadow: 0 22px 56px rgba(8, 17, 15, 0.12);
+
+  --blur: 20px;
+  --blur-strong: 30px;
+  --saturate: 1.2;
+
+  /* ---- Colour: text -------------------------------------------------- */
+  --text-primary: var(--ink);
+  --text-secondary: var(--muted);
+  --text-tertiary: rgba(100, 112, 108, 0.72);
+  --text-faint: rgba(100, 112, 108, 0.5);
+  /* Acid / green are light, so ink text sits on them. Ink fills use white. */
+  --text-on-accent: var(--ink);
+  --text-on-ink: #ffffff;
+
+  /* ---- Colour: accents ----------------------------------------------- */
+  /* Acid / green / cyan / blue / pink are PUNCTUATION — badges, marks,
+     usage bars, flow lines, focus. The primary action is ink black. */
+  --accent-1: var(--green);
+  --accent-2: var(--cyan);
+  --accent-3: var(--blue);
+  --accent-acid: var(--acid);
+  --accent-pink: var(--pink);
+  --accent-grad: linear-gradient(90deg, var(--blue) 0%, var(--green) 100%);
+  --accent-soft: rgba(53, 242, 154, 0.18);
+  /* Reuse acid as the "favorite / star" accent — bright but within the
+     brand family rather than a disconnected warm gold. */
+  --accent-gold: var(--acid);
+  --ring: rgba(49, 92, 255, 0.4);
+
+  --danger: #ff5d8f;
+  --danger-ink: #e11d6f;
+  --success: var(--green);
+  --warning: var(--acid);
+
+  /* ---- Background overlays ------------------------------------------- */
+  /* Paper gradient + faint grid + soft brand glows + cursor beam. The
+     optional wallpaper paints BEHIND these when enabled. */
+  --bg-paper: linear-gradient(180deg, #ffffff 0%, #f6f9f7 100%);
+  --bg-grid:
+    linear-gradient(rgba(8, 17, 15, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(8, 17, 15, 0.045) 1px, transparent 1px);
+  --bg-grid-size: 56px 56px;
+  --bg-glow:
+    radial-gradient(circle at 18% 18%, rgba(53, 242, 154, 0.22), transparent 22rem),
+    radial-gradient(circle at 82% 26%, rgba(49, 92, 255, 0.16), transparent 24rem);
+  /* Cursor beam on the PLAIN paper canvas (no wallpaper). Radius kept at the
+     original well-balanced 19rem; only the colour opacity is boosted so the
+     halo is more vivid without spreading wider. */
+  --bg-beam:
+    radial-gradient(circle at var(--mx, 58%) var(--my, 36%),
+      rgba(62, 219, 255, 0.45), transparent 19rem),
+    linear-gradient(110deg, transparent 0 40%,
+      rgba(223, 255, 63, 0.22) 48%, transparent 58%);
+  /* Cursor beam when a WALLPAPER is enabled. Off entirely — the wallpaper
+     uses only a restrained pointer shadow, no coloured light beam. */
+  --bg-beam-wallpaper: none;
+  --bg-overlay: var(--bg-paper);
+
+  /* Optional decorative wallpaper, treated as a premium frosted colour field:
+     a strong blur dissolves photo detail into soft gradients, a film-grain
+     overlay adds texture (Zen-browser-style). Exposed as vars so a future
+     "custom blur / grain / gradient" settings panel can tune them live
+     without touching CSS. */
+  --wallpaper-blur: 10px;
+  --wallpaper-saturate: 1.35;
+  --wallpaper-brightness: 1.05;
+  --wallpaper-scale: 1.12;
+  /* Grain strength. Dense irregular film grain (Arc/Zen-style texture direction);
+     density/tile/blend are tuned in global.css. */
+  --wallpaper-grain-opacity: 0.5;
+
+  /* ---- Typography ---------------------------------------------------- */
+  --font-sans: "Sora", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans", sans-serif;
+  --font-mono: "SFMono-Regular", ui-monospace, Consolas, Menlo, "Liberation Mono",
+    monospace;
+
+  --fs-xs: 0.75rem; /* 12 */
+  --fs-sm: 0.875rem; /* 14 */
+  --fs-base: 1rem; /* 16 */
+  --fs-md: 1.125rem; /* 18 */
+  --fs-lg: 1.375rem; /* 22 */
+  --fs-xl: 1.75rem; /* 28 */
+  --fs-2xl: 2.25rem; /* 36 */
+  --fs-3xl: clamp(2.75rem, 6vw, 4.5rem); /* hero / clock */
+
+  --lh-tight: 1.1;
+  --lh-snug: 1.25;
+  --lh-normal: 1.55;
+
+  --tracking-tight: -0.03em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.06em;
+
+  /* ---- Spacing (4px base) -------------------------------------------- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* ---- Radius -------------------------------------------------------- */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-2xl: 36px;
+  --radius-pill: 999px;
+
+  /* ---- Shadows ------------------------------------------------------- */
+  --shadow-sm: 0 2px 10px rgba(8, 17, 15, 0.06);
+  --shadow-md: 0 16px 42px rgba(8, 17, 15, 0.1);
+  --shadow-lg: 0 34px 90px rgba(8, 17, 15, 0.14);
+  --shadow-inset: inset 0 1px 0 var(--glass-highlight);
+  /* Neo-brutalist solid offset shadows (the signature of this look). */
+  --shadow-hard: 4px 4px 0 var(--ink);
+  --shadow-hard-sm: 3px 3px 0 var(--ink);
+  --shadow-hard-lg: 6px 6px 0 var(--ink);
+  --shadow-hard-acid: 6px 6px 0 var(--acid);
+  --shadow-glow: 0 0 0 1px rgba(8, 17, 15, 0.18), 0 4px 20px rgba(8, 17, 15, 0.08);
+
+  /* ---- Layout -------------------------------------------------------- */
+  /* One shared content width for EVERY page (home + bookmarks + read-later
+     + settings) so the centered container — and the TopBar rendered inside
+     it — never shifts horizontally when navigating between routes. */
+  --content-max: 1240px;
+  --content-home-max: 1240px;
+  --content-manage-max: 1240px;
+  --topbar-h: 72px;
+
+  /* ---- Motion -------------------------------------------------------- */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 140ms;
+  --dur: 220ms;
+  --dur-slow: 380ms;
+  /* Multiplier for *secondary* motion only — entrance stagger delays.
+     Animation durations collapse to 0ms via the tokens above under
+     prefers-reduced-motion, but a positive animation-delay still holds the
+     keyframe `from` state during the delay when fill-mode is `both`. Scaling
+     delays by this token makes them 0 under reduced motion so content never
+     stays hidden. Normal value is 1. */
+  --motion-scale: 1;
+
+  /* ---- Z-index ------------------------------------------------------- */
+  --z-bg: 0;
+  --z-content: 1;
+  --z-raised: 10;
+  --z-topbar: 20;
+  --z-dropdown: 50;
+  --z-nav: 40;
+  --z-modal: 60;
+
+  color-scheme: light;
+}
+
+/* Reduced motion: drop transitions/animations for accessibility.
+   Durations collapse to 0ms; the --motion-scale multiplier also goes to 0 so
+   entrance stagger delays become 0ms too — preventing the keyframe `from`
+   state from being held by fill-mode `both` during a positive delay. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+    --dur-slow: 0ms;
+    --motion-scale: 0;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}

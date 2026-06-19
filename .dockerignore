@@ -1,0 +1,24 @@
+# Version control
+.git
+.gitignore
+
+# Node
+web/node_modules
+
+# Build artifacts
+bin
+data
+
+# Environment (contains secrets)
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+
+# Documentation (not needed in image)
+*.md

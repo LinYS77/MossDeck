@@ -1,0 +1,84 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.addRow {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.addButton {
+  flex: 0 0 72px;
+  min-width: 72px;
+  padding-inline: var(--space-2);
+  white-space: nowrap;
+  writing-mode: horizontal-tb;
+}
+
+.empty {
+  font-size: var(--fs-sm);
+  color: var(--text-faint);
+  text-align: center;
+  padding: var(--space-4);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-height: 338px;
+  overflow-y: auto;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+}
+
+@media (hover: hover) {
+  .item:hover {
+    background: rgba(8, 17, 15, 0.050);
+  }
+}
+
+.dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--acid);
+  border: 1px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.nameInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  color: var(--text-primary);
+  font-size: var(--fs-sm);
+  outline: none;
+  transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+
+.nameInput:focus {
+  border-color: var(--glass-border);
+  background: rgba(8, 17, 15, 0.050);
+}
+
+.count {
+  flex: none;
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+  min-width: 28px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

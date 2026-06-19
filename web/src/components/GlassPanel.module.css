@@ -1,0 +1,48 @@
+/* Frosted white-glass surface on the paper canvas. Ink hairline border,
+   soft elevation shadow, top sheen highlight. The neo-brutalist hard shadow
+   is reserved for interactive/emphasis elements (marks, terminals, flow
+   nodes) so panels stay calm and recede. */
+.panel {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur)) saturate(var(--saturate));
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--saturate));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md), var(--shadow-inset);
+  isolation: isolate;
+}
+
+.strong {
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--blur-strong)) saturate(var(--saturate));
+  -webkit-backdrop-filter: blur(var(--blur-strong)) saturate(var(--saturate));
+  border-color: var(--glass-border-strong);
+  box-shadow: var(--shadow-lg), var(--shadow-inset);
+}
+
+.subtle {
+  background: var(--glass-bg-subtle);
+  border-color: var(--line);
+  box-shadow: var(--shadow-sm);
+}
+
+.interactive {
+  transition:
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+@media (hover: hover) {
+  .interactive:hover {
+    border-color: var(--ink);
+    box-shadow: var(--shadow-lg), var(--shadow-inset);
+    transform: translateY(-2px);
+  }
+}
+
+.interactive:active {
+  box-shadow: var(--shadow-md), var(--shadow-inset);
+  transform: translateY(0);
+}

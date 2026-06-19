@@ -1,0 +1,165 @@
+.page {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1 1 auto;
+}
+
+/* Hero --------------------------------------------------------------- */
+.hero {
+  padding: var(--space-12) 0 var(--space-8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Entrance animations on route mount (hero / read-later strip) were REMOVED:
+   every home -> settings / home -> bookmarks navigation mounted a new route
+   while these elements faded in, producing a visible twitch. Sections now
+   render at their final state directly, so route switches are stable and
+   immediate. (var(--motion-scale) delays in HomePage were also removed.) */
+
+.quickLinks {
+  margin-top: var(--space-7, 1.75rem);
+  width: 100%;
+  max-width: 620px;
+}
+
+.quickLinksHeader {
+  margin-bottom: var(--space-4);
+}
+
+/* Read-later horizontal strip ---------------------------------------- */
+.readLaterStrip {
+  padding-bottom: var(--space-8);
+}
+
+/* Two-column layout -------------------------------------------------- */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.primary {
+  min-width: 0;
+}
+
+.aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  position: sticky;
+  top: calc(var(--topbar-h) + var(--space-4));
+}
+
+/* Footer ------------------------------------------------------------- */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-12) 0 var(--space-4);
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}
+
+.footerDot {
+  opacity: 0.6;
+}
+
+/* Loading + empty-state helpers */
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-5);
+}
+
+.comingHint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  background: rgba(8, 17, 15, 0.060);
+  border: 1px solid var(--glass-border);
+}
+
+.manageLink {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  color: var(--text-on-ink);
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  box-shadow: var(--shadow-hard-sm);
+  transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+
+.manageLink:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-hard);
+}
+
+.comingHintIcon {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 720px) {
+  .skeletonGrid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+}
+
+/* ---- Responsive ---------------------------------------------------- */
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: var(--space-6);
+  }
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .aside {
+    position: static;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+  }
+}
+
+@media (max-width: 720px) {
+  .hero {
+    padding: var(--space-6) 0 var(--space-6);
+  }
+  .quickLinks {
+    margin-top: var(--space-6);
+    max-width: 100%;
+  }
+  .readLaterStrip {
+    padding-bottom: var(--space-6);
+  }
+  .aside {
+    grid-template-columns: 1fr;
+  }
+  .footer {
+    padding-bottom: var(--space-8);
+  }
+}
