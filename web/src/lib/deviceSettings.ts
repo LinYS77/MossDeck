@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-export const QUICK_ACCESS_LIMIT_OPTIONS = [3, 5, 7, 12, 14] as const;
+export const QUICK_ACCESS_LIMIT_OPTIONS = [3, 5, 7, 9, 12, 14] as const;
 export type QuickAccessLimit = typeof QUICK_ACCESS_LIMIT_OPTIONS[number];
 
 const QUICK_ACCESS_LIMIT_KEY = "homepage.quickAccess.limit";
