@@ -77,17 +77,19 @@ type Config struct {
 	// CSRFCookieName is the non-HttpOnly double-submit cookie name.
 	CSRFCookieName string `json:"csrfCookieName"`
 
-	// SetupEnabled controls the one-time admin setup endpoint. It defaults to
-	// enabled only in development; production deployments should initialize the
-	// database locally or opt in explicitly for a short maintenance window.
+	// SetupEnabled controls the one-time owner password setup endpoint. It defaults
+	// to enabled only in development. In production it may be enabled only when
+	// protected by APP_SETUP_TOKEN.
 	SetupEnabled bool `json:"setupEnabled"`
+	// SetupToken protects first-run setup on a publicly reachable deployment.
+	SetupToken string `json:"-"`
 	// CSRFHeaderName is the request header unsafe methods must echo.
 	CSRFHeaderName string `json:"csrfHeaderName"`
 
 	// --- Login rate limiting ---
 
 	// LoginMaxFailures is the number of failed login attempts allowed per
-	// (ip, username) key within LoginWindow before the key is throttled.
+	// client IP within LoginWindow before the key is throttled.
 	LoginMaxFailures int `json:"loginMaxFailures"`
 	// LoginWindow is the sliding failure-count window.
 	LoginWindow time.Duration `json:"loginWindow"`
@@ -117,6 +119,7 @@ func Load() (Config, error) {
 		CookieSameSite:   strings.ToLower(getenv("APP_COOKIE_SAMESITE", "lax")),
 		CSRFCookieName:   strings.TrimSpace(getenv("APP_CSRF_COOKIE_NAME", "homepage_csrf")),
 		SetupEnabled:     getenvbool("APP_SETUP_ENABLED", app != "production"),
+		SetupToken:       strings.TrimSpace(getenv("APP_SETUP_TOKEN", "")),
 		CSRFHeaderName:   strings.TrimSpace(getenv("APP_CSRF_HEADER_NAME", "X-CSRF-Token")),
 		LoginMaxFailures: getenvint("APP_LOGIN_MAX_FAILURES", 5),
 		LoginWindow:      getduration("APP_LOGIN_WINDOW", 15*time.Minute),
@@ -164,8 +167,8 @@ func validate(c Config) error {
 	if strings.TrimSpace(c.CSRFHeaderName) == "" {
 		return fmt.Errorf("APP_CSRF_HEADER_NAME must not be empty")
 	}
-	if c.IsProduction() && c.SetupEnabled {
-		return fmt.Errorf("APP_SETUP_ENABLED=true is not allowed with APP_ENV=production; initialize locally or run a deliberate non-production setup window")
+	if c.IsProduction() && c.SetupEnabled && len(c.SetupToken) < 16 {
+		return fmt.Errorf("APP_SETUP_ENABLED=true in production requires APP_SETUP_TOKEN of at least 16 bytes")
 	}
 	switch c.CookieSameSite {
 	case "lax", "strict", "none":

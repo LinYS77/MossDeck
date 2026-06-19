@@ -23,7 +23,7 @@ const NAV: NavItem[] = [
  *  wallpaper / settings / sign-out on the right. Transparent over the paper
  *  canvas — no solid bar, no backdrop jitter. */
 export function TopBar() {
-  const { logout, user } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const { t } = useI18n();
 
@@ -70,7 +70,7 @@ export function TopBar() {
           type="button"
           className={styles.iconBtn}
           onClick={() => void logout()}
-          title={user ? t("topbar.signOut") + " " + user.username : t("topbar.signOut")}
+          title={t("topbar.signOut")}
           aria-label={t("topbar.signOut")}
         >
           <LogoutIcon />

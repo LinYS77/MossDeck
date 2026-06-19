@@ -6,13 +6,48 @@
 package security
 
 import (
+	"errors"
 	"fmt"
+	"unicode"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 // MinPasswordLength is the minimum length enforced for new passwords.
-const MinPasswordLength = 8
+const MinPasswordLength = 12
+
+var ErrWeakPassword = errors.New("security: weak password")
+
+// ValidatePasswordStrength requires a personal-deployment password to be long
+// and varied enough for public internet exposure.
+func ValidatePasswordStrength(password string) error {
+	if len([]rune(password)) < MinPasswordLength {
+		return fmt.Errorf("%w: must be at least %d characters", ErrWeakPassword, MinPasswordLength)
+	}
+	var classes int
+	var hasLower, hasUpper, hasDigit, hasSymbol bool
+	for _, r := range password {
+		switch {
+		case unicode.IsLower(r):
+			hasLower = true
+		case unicode.IsUpper(r):
+			hasUpper = true
+		case unicode.IsDigit(r):
+			hasDigit = true
+		case unicode.IsPunct(r) || unicode.IsSymbol(r) || unicode.IsSpace(r):
+			hasSymbol = true
+		}
+	}
+	for _, ok := range []bool{hasLower, hasUpper, hasDigit, hasSymbol} {
+		if ok {
+			classes++
+		}
+	}
+	if classes < 3 {
+		return fmt.Errorf("%w: use at least three of lowercase, uppercase, digits, and symbols", ErrWeakPassword)
+	}
+	return nil
+}
 
 // HashPassword returns a bcrypt hash of the plaintext password at the given
 // cost. The cost is configurable so tests can use bcrypt.MinCost for speed

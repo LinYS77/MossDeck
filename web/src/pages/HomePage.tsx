@@ -12,7 +12,6 @@ import {
   BookmarkIcon,
 } from "../components/icons";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../features/auth/AuthProvider";
 import { useHomeData } from "../features/home/useHomeData";
 import { useI18n } from "../i18n/I18nProvider";
 import styles from "./HomePage.module.css";
@@ -21,11 +20,9 @@ import styles from "./HomePage.module.css";
  *  existing glass UI. Loading uses skeletons; empty data shows tasteful empty
  *  states; per-section errors degrade gracefully. */
 export function HomePage() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const data = useHomeData();
   const { t } = useI18n();
-  const greetingName = user?.displayName || user?.username;
 
   const isLoading = data.status === "loading";
   const hasBookmarks = data.groups.length > 0;
@@ -36,7 +33,7 @@ export function HomePage() {
       <main className={styles.main}>
         {/* Hero: clock + search + quick links */}
         <section className={styles.hero}>
-          <Clock name={greetingName} />
+          <Clock />
           <SearchBar />
           <div className={styles.quickLinks}>
             <QuickLinks
@@ -101,9 +98,7 @@ export function HomePage() {
       </main>
 
       <footer className={styles.footer}>
-        <span>
-          {greetingName ? t("common.signedInAs", { name: greetingName }) : t("topbar.homepage")}
-        </span>
+        <span>{t("topbar.homepage")}</span>
         <span className={styles.footerDot} aria-hidden>
           ·
         </span>

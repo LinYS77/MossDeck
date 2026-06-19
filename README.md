@@ -4,7 +4,7 @@ Mossdeck is a personal, self-hosted browser homepage for bookmarks and read-late
 
 ## Features
 
-- Personal login with cookie sessions and CSRF protection
+- Personal password-lock login with cookie sessions and CSRF protection
 - Bookmark categories, tags, search, archive/trash, favorites and pinned items
 - Browser bookmark HTML import
 - Read-later queue with tags, states, priorities and domain filtering
@@ -18,7 +18,7 @@ Mossdeck is a personal, self-hosted browser homepage for bookmarks and read-late
 - **Backend:** Go, `net/http`, SQLite, embedded migrations
 - **Frontend:** React, TypeScript, Vite, CSS Modules
 - **Storage:** SQLite database file
-- **Auth:** bcrypt passwords, server-side sessions, CSRF double-submit cookie
+- **Auth:** single-owner password, bcrypt, server-side sessions, CSRF double-submit cookie
 
 ## Quick Start
 
@@ -41,22 +41,19 @@ The dev frontend proxies `/api` to the Go server on `http://localhost:8080`.
 
 ## First Login
 
-In development, setup is enabled by default:
+Mossdeck is personal-use only: there is no public registration and no username field.
+
+In development, setup is enabled by default. Open the app and create one strong access password. The password must be at least 12 characters and include at least three of lowercase, uppercase, digits and symbols.
+
+For public first-run setup, protect initialization with a setup token:
 
 ```bash
-APP_ENV=development APP_SETUP_ENABLED=true go run ./cmd/server
+APP_ENV=production
+APP_SETUP_ENABLED=true
+APP_SETUP_TOKEN=<strong-one-time-token>
 ```
 
-Create the first admin through the UI, or call:
-
-```bash
-curl -i -c cookies.txt \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"admin","password":"change-me-now","displayName":"Admin"}' \
-  http://localhost:8080/api/v1/auth/setup
-```
-
-For public deployment, keep setup disabled and use an already-initialized database or restore from a trusted backup.
+After creating the password, disable setup again. You can also initialize locally and copy/restore the SQLite database to the server.
 
 ## Build
 
@@ -83,6 +80,7 @@ Important production settings:
 ```bash
 APP_ENV=production
 APP_SETUP_ENABLED=false
+APP_SETUP_TOKEN=
 APP_SESSION_SECRET=<at-least-32-bytes>
 APP_DATABASE_PATH=/data/mossdeck.db
 APP_COOKIE_SECURE=true

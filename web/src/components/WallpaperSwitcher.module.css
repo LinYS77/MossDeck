@@ -130,6 +130,61 @@
   background: var(--acid);
 }
 
+.fileInput {
+  display: none;
+}
+
+.uploadRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  border: 1px dashed var(--ink);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+  transition:
+    background var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+
+.uploadRow:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+@media (hover: hover) {
+  .uploadRow:not(:disabled):hover {
+    background: var(--acid);
+    box-shadow: var(--shadow-hard-sm);
+    transform: translate(-1px, -1px);
+  }
+}
+
+.uploadIcon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+.uploadRow span {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--fs-sm);
+  font-weight: 800;
+}
+
+.uploadRow small {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

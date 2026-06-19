@@ -1,19 +1,21 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { WALLPAPERS, useWallpaper, useWallpaperEnabled } from "../lib/wallpapers";
+import { createCustomWallpaper, useWallpaper, useWallpaperEnabled } from "../lib/wallpapers";
 import { cn } from "../lib/cn";
-import { ImageIcon, CheckIcon } from "./icons";
+import { ImageIcon, CheckIcon, UploadIcon } from "./icons";
 import { useI18n } from "../i18n/I18nProvider";
 import styles from "./WallpaperSwitcher.module.css";
 
 /** Glass dropdown that toggles the optional decorative wallpaper layer and,
  *  when enabled, previews / switches the active wallpaper. */
 export function WallpaperSwitcher() {
-  const { wallpaper, setSlug } = useWallpaper();
+  const { wallpaper, wallpapers, setSlug } = useWallpaper();
   const { enabled, setEnabled } = useWallpaperEnabled();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const menuId = useId();
   const wrapRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -30,6 +32,20 @@ export function WallpaperSwitcher() {
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
+
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const custom = await createCustomWallpaper(file);
+      setSlug(custom.slug);
+      setEnabled(true);
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
+  };
 
   return (
     <div className={styles.wrap} ref={wrapRef}>
@@ -66,8 +82,28 @@ export function WallpaperSwitcher() {
             </span>
           </button>
 
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className={styles.fileInput}
+            onChange={handleUpload}
+          />
+          <button
+            type="button"
+            className={styles.uploadRow}
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+          >
+            <UploadIcon className={styles.uploadIcon} />
+            <span>
+              {t("wallpaper.upload")}
+              <small>{t("wallpaper.uploadHint")}</small>
+            </span>
+          </button>
+
           <div className={styles.grid}>
-            {WALLPAPERS.map((w) => {
+            {wallpapers.map((w) => {
               const active = enabled && w.slug === wallpaper.slug;
               return (
                 <button

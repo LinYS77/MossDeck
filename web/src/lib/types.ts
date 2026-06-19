@@ -46,9 +46,10 @@ export interface ReadLaterItem {
 export interface Wallpaper {
   slug: string;
   label: string;
-  /** Path under /wallpaper served from public/. */
+  /** Built-in public path or uploaded data URL. */
   src: string;
   thumb: string;
+  custom?: boolean;
 }
 
 export type SearchEngineId = "google" | "duckduckgo";

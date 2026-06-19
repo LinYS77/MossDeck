@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"crypto/subtle"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -23,6 +24,7 @@ type Config struct {
 	CookieSecure   bool
 	CookieSameSite string
 	SetupEnabled   bool
+	SetupToken     string
 }
 
 // CSRFManager is the narrow auth-side contract for issuing and clearing the
@@ -41,11 +43,8 @@ type ClientIPResolver interface {
 	ClientIP(r *http.Request) string
 }
 
-// dummyHash is a precomputed, valid bcrypt hash of a throwaway value. It is
-// used to keep login timing roughly constant whether or not the username
-// exists: comparing the supplied password against it burns the same bcrypt
-// work as a real check without revealing anything about stored users. It is
-// never accepted as a real credential because no user row stores it.
+// dummyHash is a precomputed, valid bcrypt hash of a throwaway value. It keeps
+// login timing roughly constant when the owner password has not been created.
 var dummyHash = "$2a$12$GT2EAuTzpgFysd0zmDORC.6RfmeLplGXgjQXUnVPYtiVSW72J8fgC"
 
 // Service implements the auth business logic. It depends on a Store (persistence)
@@ -80,11 +79,14 @@ func (s *Service) SetCSRFManager(manager CSRFManager) {
 	s.csrf = manager
 }
 
-// Setup creates the first admin user. It fails when setup is disabled or once
-// any user already exists, making initialization an explicit, one-time action.
+// Setup creates the personal owner account. It fails when setup is disabled or
+// once any user already exists, making initialization an explicit one-time action.
 func (s *Service) Setup(ctx context.Context, p SetupParams) (*User, error) {
 	if !s.cfg.SetupEnabled {
 		return nil, ErrSetupDisabled
+	}
+	if err := s.validateSetupToken(p.SetupToken); err != nil {
+		return nil, err
 	}
 	if err := validateSetup(p); err != nil {
 		return nil, err
@@ -100,45 +102,40 @@ func (s *Service) Setup(ctx context.Context, p SetupParams) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	user, err := s.store.CreateUser(ctx, CreateUserParams{
-		Username:     strings.TrimSpace(p.Username),
-		Email:        strings.TrimSpace(p.Email),
-		PasswordHash: hash,
-		DisplayName:  strings.TrimSpace(p.DisplayName),
-		Role:         "admin",
-		Status:       "active",
-	})
+	user, err := s.store.CreateUser(ctx, CreateUserParams{PasswordHash: hash})
 	if err != nil {
 		return nil, err
 	}
-	s.logger.Info("admin initialized", "user_id", user.ID, "username", user.Username)
+	s.logger.Info("owner initialized", "user_id", user.ID)
 	return user, nil
 }
 
-// Login authenticates credentials and, on success, creates a session. It
-// returns the user and the raw session token (to be placed in the cookie).
-//
-// To avoid revealing whether a username exists, the not-found path performs a
-// dummy bcrypt comparison so its timing resembles a real check. All
-// credential failures are reported as the single ErrInvalidCredentials
-// (inactive users map to ErrUserInactive but handlers render both as the same
-// generic 401).
-func (s *Service) Login(ctx context.Context, username, password, userAgent, ip string) (*User, string, error) {
-	user, err := s.store.GetUserByUsername(ctx, username)
+// Status reports whether this instance can be initialized from the browser.
+func (s *Service) Status(ctx context.Context) (initialized bool, setupEnabled bool, setupTokenRequired bool, err error) {
+	n, err := s.store.CountUsers(ctx)
+	if err != nil {
+		return false, false, false, err
+	}
+	return n > 0, s.cfg.SetupEnabled, s.cfg.SetupToken != "", nil
+}
+
+// Login authenticates the personal owner password and, on success, creates a session.
+func (s *Service) Login(ctx context.Context, password, userAgent, ip string) (*User, string, error) {
+	user, err := s.store.GetFirstUser(ctx)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
-			_ = security.CheckPassword(dummyHash, password) // flatten timing
+			_ = security.CheckPassword(dummyHash, password)
 			return nil, "", ErrInvalidCredentials
 		}
 		return nil, "", err
 	}
+	return s.loginUser(ctx, user, password, userAgent, ip)
+}
+
+func (s *Service) loginUser(ctx context.Context, user *User, password, userAgent, ip string) (*User, string, error) {
 	if err := security.CheckPassword(user.PasswordHash, password); err != nil {
 		return nil, "", ErrInvalidCredentials
 	}
-	if user.Status != "active" {
-		return nil, "", ErrUserInactive
-	}
-
 	token, err := security.GenerateToken()
 	if err != nil {
 		return nil, "", err
@@ -153,8 +150,6 @@ func (s *Service) Login(ctx context.Context, username, password, userAgent, ip s
 	}); err != nil {
 		return nil, "", err
 	}
-	// A failed last-login update must not invalidate an otherwise-successful
-	// login; log and continue.
 	if err := s.store.TouchLogin(ctx, user.ID, expiresAt); err != nil {
 		s.logger.Warn("update last_login_at failed", "user_id", user.ID, "error", err)
 	}
@@ -182,9 +177,6 @@ func (s *Service) ResolveSession(ctx context.Context, token string) (*User, erro
 		}
 		return nil, err
 	}
-	if user.Status != "active" {
-		return nil, ErrSessionInvalid
-	}
 	return user, nil
 }
 
@@ -198,52 +190,36 @@ func (s *Service) Logout(ctx context.Context, token string) error {
 	return s.store.RevokeSessionByTokenHash(ctx, security.HashToken(token))
 }
 
-// validateSetup checks setup input and returns the first problem as a
-// ValidationError, or nil.
-func validateSetup(p SetupParams) error {
-	username := strings.TrimSpace(p.Username)
-	switch {
-	case len(username) < 3 || len(username) > 32:
-		return ValidationError{Field: "username", Reason: "must be 3-32 characters"}
-	case !validUsername(username):
-		return ValidationError{Field: "username", Reason: "may only contain letters, digits, '.', '-' and '_'"}
+func (s *Service) validateSetupToken(token string) error {
+	if s.cfg.SetupToken == "" {
+		return nil
 	}
-	if len(p.Password) < security.MinPasswordLength {
-		return ValidationError{
-			Field:  "password",
-			Reason: fmt.Sprintf("must be at least %d characters", security.MinPasswordLength),
-		}
-	}
-	if email := strings.TrimSpace(p.Email); email != "" && !validEmail(email) {
-		return ValidationError{Field: "email", Reason: "invalid email format"}
+	provided := strings.TrimSpace(token)
+	if len(provided) != len(s.cfg.SetupToken) || subtle.ConstantTimeCompare([]byte(provided), []byte(s.cfg.SetupToken)) != 1 {
+		return ErrInvalidSetupToken
 	}
 	return nil
 }
 
-// validUsername checks the allowed character set for usernames.
-func validUsername(s string) bool {
-	for _, r := range s {
-		switch {
-		case r >= 'a' && r <= 'z',
-			r >= 'A' && r <= 'Z',
-			r >= '0' && r <= '9',
-			r == '.', r == '-', r == '_':
-		default:
-			return false
+// validateSetup checks setup input and returns the first problem as a
+// ValidationError, or nil.
+func validateSetup(p SetupParams) error {
+	if p.Password == "" {
+		return ValidationError{Field: "password", Reason: "is required"}
+	}
+	if p.ConfirmPassword == "" {
+		return ValidationError{Field: "confirmPassword", Reason: "is required"}
+	}
+	if p.Password != p.ConfirmPassword {
+		return ValidationError{Field: "confirmPassword", Reason: "does not match password"}
+	}
+	if err := security.ValidatePasswordStrength(p.Password); err != nil {
+		return ValidationError{
+			Field:  "password",
+			Reason: fmt.Sprintf("must be at least %d characters and include at least three of lowercase, uppercase, digits, and symbols", security.MinPasswordLength),
 		}
 	}
-	return true
-}
-
-// validEmail is a deliberately lightweight sanity check; it does not attempt
-// full RFC validation. Empty emails are allowed by the caller.
-func validEmail(s string) bool {
-	at := strings.IndexByte(s, '@')
-	if at <= 0 || at == len(s)-1 {
-		return false
-	}
-	rest := s[at+1:]
-	return strings.Contains(rest, ".")
+	return nil
 }
 
 // truncate clips s to at most n UTF-8 runes (for storing bounded metadata).

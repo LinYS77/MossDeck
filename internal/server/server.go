@@ -79,6 +79,7 @@ func New(ctx context.Context, cfg config.Config, db *sql.DB, logger *slog.Logger
 		CookieSecure:   cfg.CookieSecure,
 		CookieSameSite: cfg.CookieSameSite,
 		SetupEnabled:   cfg.SetupEnabled,
+		SetupToken:     cfg.SetupToken,
 	}, auth.NewStore(db), limiter, resolver, logger)
 	authSvc.SetCSRFManager(csrfManager)
 	auth.Register(mux, authSvc)

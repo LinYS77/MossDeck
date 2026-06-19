@@ -7,14 +7,10 @@ import (
 	"fmt"
 )
 
-// sqliteStore is the production Store, backed by *sql.DB (modernc.org/sqlite).
-// It is concurrency-safe because *sql.DB manages a connection pool.
 type sqliteStore struct {
 	db *sql.DB
 }
 
-// NewStore returns a Store backed by the given database. The users and
-// sessions tables must already exist (see migrations/0001_init.sql).
 func NewStore(db *sql.DB) Store {
 	return &sqliteStore{db: db}
 }
@@ -29,48 +25,41 @@ func (s *sqliteStore) CountUsers(ctx context.Context) (int, error) {
 
 func (s *sqliteStore) CreateUser(ctx context.Context, p CreateUserParams) (*User, error) {
 	res, err := s.db.ExecContext(ctx, `
-INSERT INTO users (username, email, password_hash, display_name, role, status)
-VALUES (?, ?, ?, ?, ?, ?)`,
-		p.Username, nullIfEmpty(p.Email), p.PasswordHash,
-		nullIfEmpty(p.DisplayName), defaultStr(p.Role, "admin"), defaultStr(p.Status, "active"),
-	)
+INSERT INTO users (password_hash) VALUES (?)`, p.PasswordHash)
 	if err != nil {
-		if isUniqueViolation(err) {
-			return nil, ErrUsernameTaken
-		}
-		return nil, fmt.Errorf("auth: create user: %w", err)
+		return nil, fmt.Errorf("auth: create owner: %w", err)
 	}
 	id, err := res.LastInsertId()
 	if err != nil {
-		return nil, fmt.Errorf("auth: create user last id: %w", err)
+		return nil, fmt.Errorf("auth: create owner last id: %w", err)
 	}
 	return s.GetUserByID(ctx, id)
 }
 
-func (s *sqliteStore) GetUserByUsername(ctx context.Context, username string) (*User, error) {
+func (s *sqliteStore) GetFirstUser(ctx context.Context) (*User, error) {
 	row := s.db.QueryRowContext(ctx, `
-SELECT id, username, email, password_hash, display_name, avatar_url, role, status, last_login_at, created_at, updated_at
-FROM users WHERE username = ?`, username)
+SELECT id, password_hash, last_login_at, created_at, updated_at
+FROM users ORDER BY id LIMIT 1`)
 	u, err := scanUser(row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
-		return nil, fmt.Errorf("auth: get user by username: %w", err)
+		return nil, fmt.Errorf("auth: get owner: %w", err)
 	}
 	return u, nil
 }
 
 func (s *sqliteStore) GetUserByID(ctx context.Context, id int64) (*User, error) {
 	row := s.db.QueryRowContext(ctx, `
-SELECT id, username, email, password_hash, display_name, avatar_url, role, status, last_login_at, created_at, updated_at
+SELECT id, password_hash, last_login_at, created_at, updated_at
 FROM users WHERE id = ?`, id)
 	u, err := scanUser(row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
-		return nil, fmt.Errorf("auth: get user by id: %w", err)
+		return nil, fmt.Errorf("auth: get owner by id: %w", err)
 	}
 	return u, nil
 }
@@ -122,12 +111,4 @@ UPDATE users SET last_login_at = ?, updated_at = datetime('now') WHERE id = ?`, 
 		return fmt.Errorf("auth: touch login: %w", err)
 	}
 	return nil
-}
-
-// defaultStr returns v when non-empty, otherwise def.
-func defaultStr(v, def string) string {
-	if v == "" {
-		return def
-	}
-	return v
 }

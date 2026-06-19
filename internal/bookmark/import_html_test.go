@@ -155,7 +155,7 @@ func importJSON(t *testing.T, e *testEnv, html, mode string) (*httptest.Response
 
 func TestImportHTMLHappyPath(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	rec, res := importJSON(t, e, sampleChromeExport, "")
 	if rec.Code != http.StatusOK {
@@ -218,7 +218,7 @@ func TestImportHTMLHappyPath(t *testing.T) {
 
 func TestImportHTMLDuplicateURLSkip(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	// Pre-create a bookmark that the import will try to add again.
 	e.post(t, "/api/v1/bookmarks", map[string]any{"url": "https://go.dev/"})
@@ -242,7 +242,7 @@ func TestImportHTMLDuplicateURLSkip(t *testing.T) {
 
 func TestImportHTMLDuplicateURLUpdate(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	// Existing bookmark with a default title (= domain).
 	e.post(t, "/api/v1/bookmarks", map[string]any{"url": "https://go.dev/"})
@@ -262,7 +262,7 @@ func TestImportHTMLDuplicateURLUpdate(t *testing.T) {
 
 func TestImportHTMLSkipsNonHTTPURLs(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 	html := `<DL><p>
 <DT><A HREF="javascript:alert(1)">js</A>
 <DT><A HREF="file:///x">file</A>
@@ -294,7 +294,7 @@ func TestImportHTMLRequiresAuth(t *testing.T) {
 
 func TestImportHTMLRequiresCSRF(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 	body, _ := json.Marshal(map[string]string{"html": sampleChromeExport})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/bookmarks/import/html", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -313,7 +313,7 @@ func TestImportHTMLRequiresCSRF(t *testing.T) {
 
 func TestImportHTMLRejectsOversizedJSONHTML(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	// The HTML field alone exceeds maxImportBytes; the raw JSON body fits
 	// within the envelope headroom so it decodes, then the len(html) check
@@ -340,7 +340,7 @@ func TestImportHTMLRejectsOversizedJSONHTML(t *testing.T) {
 
 func TestImportHTMLRejectsOversizedJSONBody(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	// A JSON body far beyond the envelope limit is rejected during decode
 	// (MaxBytesReader) as 413, keeping size-limit failures unambiguous.
@@ -361,7 +361,7 @@ func TestImportHTMLRejectsOversizedJSONBody(t *testing.T) {
 
 func TestImportHTMLRejectsOversizedMultipartBody(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	var body bytes.Buffer
 	mw := multipart.NewWriter(&body)
@@ -391,7 +391,7 @@ func TestImportHTMLRejectsOversizedMultipartBody(t *testing.T) {
 
 func TestImportHTMLRejectsBadDuplicateMode(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 	rec, _ := importJSON(t, e, sampleChromeExport, "bogus")
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("bad duplicateMode: status = %d, want 400", rec.Code)
@@ -400,7 +400,7 @@ func TestImportHTMLRejectsBadDuplicateMode(t *testing.T) {
 
 func TestImportHTMLCategoryReuse(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	// Create the category ahead of time.
 	e.post(t, "/api/v1/categories", map[string]any{"name": "Dev"})
@@ -431,7 +431,7 @@ func TestImportHTMLCategoryReuse(t *testing.T) {
 // even with many skipped items.
 func TestImportHTMLSampleBounded(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	// 200 distinct non-http URLs -> all skipped, but samples capped.
 	var sb strings.Builder
@@ -458,7 +458,7 @@ var _ = context.Background
 // counters reconcile to Total. Uses a small per-test cap so it stays fast.
 func TestImportHTMLItemLimitSemantics(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	// Temporarily lower the service's per-import cap for a fast, deterministic
 	// truncation test (default maxImportItems is 20k and would create that many
@@ -503,7 +503,7 @@ func TestImportHTMLItemLimitSemantics(t *testing.T) {
 // the README), not failed.
 func TestImportHTMLDuplicateModeDuplicateSkips(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	// Pre-create a bookmark the import will collide with.
 	e.post(t, "/api/v1/bookmarks", map[string]any{"url": "https://go.dev/"})

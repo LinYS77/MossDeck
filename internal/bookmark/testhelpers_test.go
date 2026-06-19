@@ -7,20 +7,21 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/linyusheng/homepage/internal/security"
 )
 
-// createUser inserts a user directly into the DB (bypassing the one-shot setup
-// endpoint) so multi-user isolation tests can provision a second identity.
-func createUser(t *testing.T, db *sql.DB, username, password string) int64 {
+// createUser inserts an internal owner row directly so isolation tests can
+// verify every query remains scoped by user_id. The product has no public
+// multi-user account surface.
+func createUser(t *testing.T, db *sql.DB) int64 {
 	t.Helper()
-	hash, err := security.HashPassword(password, 4)
+	hash, err := security.HashPassword("StrongPass1!", 4)
 	if err != nil {
 		t.Fatalf("hash password: %v", err)
 	}
-	res, err := db.Exec(`INSERT INTO users (username, password_hash, role, status) VALUES (?, ?, 'admin', 'active')`,
-		username, hash)
+	res, err := db.Exec(`INSERT INTO users (password_hash) VALUES (?)`, hash)
 	if err != nil {
 		t.Fatalf("insert user: %v", err)
 	}
@@ -28,29 +29,21 @@ func createUser(t *testing.T, db *sql.DB, username, password string) int64 {
 	return id
 }
 
-// loginAs posts to the login endpoint and returns the resulting session cookie.
-func loginAs(t *testing.T, handler http.Handler, username, password string) *http.Cookie {
+func sessionForUser(t *testing.T, db *sql.DB, userID int64) *http.Cookie {
 	t.Helper()
-	body, _ := json.Marshal(map[string]string{"username": username, "password": password})
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("login as %s: %d %s", username, rec.Code, rec.Body.String())
+	token, err := security.GenerateToken()
+	if err != nil {
+		t.Fatalf("generate token: %v", err)
 	}
-	for _, c := range rec.Result().Cookies() {
-		if c.Name == "homepage_session" {
-			return c
-		}
+	expiresAt := time.Now().Add(time.Hour).UTC().Format("2006-01-02 15:04:05")
+	_, err = db.Exec(`INSERT INTO sessions (user_id, token_hash, expires_at) VALUES (?, ?, ?)`,
+		userID, security.HashToken(token), expiresAt)
+	if err != nil {
+		t.Fatalf("insert session: %v", err)
 	}
-	t.Fatal("no session cookie after loginAs")
-	return nil
+	return &http.Cookie{Name: "homepage_session", Value: token, Path: "/"}
 }
 
-// secondUserPost performs an authenticated POST as a different user (via their
-// session cookie), returning the decoded data field. Used by cross-user tests
-// that need to provision resources owned by another identity.
 func secondUserPost(t *testing.T, handler http.Handler, cookie *http.Cookie, path string, body any) categoryDTO {
 	t.Helper()
 	b, _ := json.Marshal(body)

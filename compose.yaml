@@ -3,7 +3,8 @@
 # Quick start:
 #   1. cp .env.example .env   # edit APP_SESSION_SECRET, APP_BASE_URL
 #   2. Edit Caddyfile → replace your-domain.example.com with your real domain
-#   3. Initialize the database locally (development setup), then restore/copy it to the server
+#   3. Prefer initializing locally, then restore/copy the database to the server
+#      OR temporarily set APP_SETUP_ENABLED=true with a strong APP_SETUP_TOKEN.
 #   4. docker compose up -d and sign in at https://your-domain.example.com
 #
 # Data persists in Docker volumes (homepage_data, caddy_data, caddy_config).
@@ -22,7 +23,8 @@ services:
       # Trust the internal Docker network so X-Forwarded-For works for rate limiting.
       - APP_TRUSTED_PROXY_CIDRS=${APP_TRUSTED_PROXY_CIDRS:-172.16.0.0/12}
       - APP_COOKIE_SECURE=true
-      - APP_SETUP_ENABLED=false
+      - APP_SETUP_ENABLED=${APP_SETUP_ENABLED:-false}
+      - APP_SETUP_TOKEN=${APP_SETUP_TOKEN:-}
       - APP_LOG_FORMAT=json
     expose:
       - "8080"

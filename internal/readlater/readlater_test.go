@@ -74,13 +74,13 @@ func newTestEnv(t *testing.T) *testEnv {
 	return &testEnv{mux: mux, handler: csrfManager.Middleware(mux), db: database, svc: svc, logger: logger, authSvc: authSvc}
 }
 
-func (e *testEnv) loginAdmin(t *testing.T) {
+func (e *testEnv) loginOwner(t *testing.T) {
 	t.Helper()
-	rec := e.post(t, "/api/v1/auth/setup", map[string]string{"username": "admin", "password": "supersecret"})
+	rec := e.post(t, "/api/v1/auth/setup", map[string]string{"password": "StrongPass1!", "confirmPassword": "StrongPass1!"})
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("setup: %d %s", rec.Code, rec.Body.String())
 	}
-	rec = e.post(t, "/api/v1/auth/login", map[string]string{"username": "admin", "password": "supersecret"})
+	rec = e.post(t, "/api/v1/auth/login", map[string]string{"password": "StrongPass1!"})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("login: %d %s", rec.Code, rec.Body.String())
 	}
@@ -221,7 +221,7 @@ func TestReadLaterRequiresAuth(t *testing.T) {
 
 func TestReadLaterMutationRequiresCSRF(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 	body, _ := json.Marshal(map[string]string{"url": "https://example.com"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/read-later", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -240,7 +240,7 @@ func TestReadLaterMutationRequiresCSRF(t *testing.T) {
 
 func TestReadLaterCRUDDeleteRestore(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 	tagID := createTag(t, e, "reading")
 	item := createItem(t, e, "https://example.com/article?utm_source=x#frag", map[string]any{
 		"title": "Article", "excerpt": "hello", "tagIds": []int64{tagID}, "favorite": true, "priority": 3,
@@ -284,7 +284,7 @@ func TestReadLaterCRUDDeleteRestore(t *testing.T) {
 
 func TestReadLaterArchiveOpenStateAndTimestamps(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 	item := createItem(t, e, "https://example.com/open", nil)
 	opened := data[itemDTO](t, e.post(t, "/api/v1/read-later/"+itoa(item.ID)+"/open", nil))
 	if opened.State != StateReading || opened.LastOpenedAt == "" {
@@ -306,7 +306,7 @@ func TestReadLaterArchiveOpenStateAndTimestamps(t *testing.T) {
 
 func TestReadLaterDuplicateCreateUpdateRestoreConflicts(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 	first := createItem(t, e, "https://example.com/a?b=2&a=1#frag", nil)
 	second := createItem(t, e, "https://example.com/b", nil)
 
@@ -332,7 +332,7 @@ func TestReadLaterDuplicateCreateUpdateRestoreConflicts(t *testing.T) {
 
 func TestReadLaterSearchFilterPagination(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 	goTag := createTag(t, e, "go")
 	jsTag := createTag(t, e, "js")
 	createItem(t, e, "https://go.dev/doc", map[string]any{"title": "Go Docs", "siteName": "Go", "tagIds": []int64{goTag}, "favorite": true, "priority": 5})
@@ -368,9 +368,9 @@ func TestReadLaterSearchFilterPagination(t *testing.T) {
 
 func TestReadLaterTagOwnershipAndMultiUserIsolation(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 	ownTag := createTag(t, e, "mine")
-	otherUserID := insertUser(t, e.db, "other")
+	otherUserID := insertUser(t, e.db)
 	otherTagID := insertTag(t, e.db, otherUserID, "other-tag")
 	otherItem, err := e.svc.Create(context.Background(), otherUserID, CreateParams{URL: "https://other.example/item", Title: "Other", TagIDs: []int64{otherTagID}})
 	if err != nil {
@@ -401,7 +401,7 @@ func TestReadLaterPurgeRequiresAuth(t *testing.T) {
 
 func TestReadLaterPurgeRequiresCSRF(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 	item := createItem(t, e, "https://example.com/csrf-purge", nil)
 	_ = data[itemDTO](t, e.del(t, "/api/v1/read-later/"+itoa(item.ID)))
 
@@ -421,7 +421,7 @@ func TestReadLaterPurgeRequiresCSRF(t *testing.T) {
 
 func TestReadLaterPurgePermanently(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	// Create and trash an item.
 	item := createItem(t, e, "https://example.com/purge-me", nil)
@@ -451,7 +451,7 @@ func TestReadLaterPurgePermanently(t *testing.T) {
 
 func TestReadLaterPurgeNonTrashReturnsError(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	// Try to purge an active item.
 	item := createItem(t, e, "https://example.com/active", nil)
@@ -470,7 +470,7 @@ func TestReadLaterPurgeNonTrashReturnsError(t *testing.T) {
 
 func TestReadLaterPurgeNotFound(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	rec := e.send(t, http.MethodDelete, "/api/v1/read-later/99999/purge", nil, true)
 	if rec.Code != http.StatusNotFound {
@@ -480,10 +480,10 @@ func TestReadLaterPurgeNotFound(t *testing.T) {
 
 func TestReadLaterPurgeCrossUserIsolation(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	// Create an item for another user, trash it.
-	otherUserID := insertUser(t, e.db, "other")
+	otherUserID := insertUser(t, e.db)
 	otherItem, err := e.svc.Create(context.Background(), otherUserID, CreateParams{URL: "https://other.example/trash-me", Title: "Other"})
 	if err != nil {
 		t.Fatalf("create other item: %v", err)
@@ -510,7 +510,7 @@ func TestReadLaterPurgeCrossUserIsolation(t *testing.T) {
 
 func TestReadLaterPurgeAllowsRecreate(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	// Create, trash, then purge.
 	item := createItem(t, e, "https://example.com/recreate", nil)
@@ -527,9 +527,9 @@ func TestReadLaterPurgeAllowsRecreate(t *testing.T) {
 	}
 }
 
-func insertUser(t *testing.T, database *sql.DB, username string) int64 {
+func insertUser(t *testing.T, database *sql.DB) int64 {
 	t.Helper()
-	res, err := database.Exec(`INSERT INTO users (username, password_hash) VALUES (?, ?)`, username, "hash")
+	res, err := database.Exec(`INSERT INTO users (password_hash) VALUES (?)`, "hash")
 	if err != nil {
 		t.Fatalf("insert user: %v", err)
 	}

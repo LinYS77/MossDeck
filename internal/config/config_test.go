@@ -9,7 +9,7 @@ func TestLoadDefaults(t *testing.T) {
 	// Ensure a clean environment so defaults apply.
 	for _, k := range []string{"APP_ENV", "APP_BASE_URL", "APP_HTTP_ADDR", "APP_LOG_LEVEL",
 		"APP_LOG_FORMAT", "APP_DATABASE_PATH", "APP_SESSION_SECRET", "APP_TRUSTED_PROXY_CIDRS",
-		"APP_CSRF_COOKIE_NAME", "APP_CSRF_HEADER_NAME", "APP_SETUP_ENABLED"} {
+		"APP_CSRF_COOKIE_NAME", "APP_CSRF_HEADER_NAME", "APP_SETUP_ENABLED", "APP_SETUP_TOKEN"} {
 		t.Setenv(k, "")
 	}
 
@@ -79,6 +79,21 @@ func TestLoadHonoursEnv(t *testing.T) {
 	}
 }
 
+func TestProductionSetupCanBeTokenProtected(t *testing.T) {
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("APP_SESSION_SECRET", "0123456789abcdef0123456789abcdef")
+	t.Setenv("APP_SETUP_ENABLED", "true")
+	t.Setenv("APP_SETUP_TOKEN", "setup-token-123456")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !cfg.SetupEnabled || cfg.SetupToken != "setup-token-123456" {
+		t.Fatalf("setup token config not loaded: enabled=%v token=%q", cfg.SetupEnabled, cfg.SetupToken)
+	}
+}
+
 func TestLoadValidationErrors(t *testing.T) {
 	cases := []struct {
 		name string
@@ -92,7 +107,8 @@ func TestLoadValidationErrors(t *testing.T) {
 		{"empty csrf header", map[string]string{"APP_CSRF_HEADER_NAME": "   "}},
 		{"production without secret", map[string]string{"APP_ENV": "production"}},
 		{"production weak secret", map[string]string{"APP_ENV": "production", "APP_SESSION_SECRET": "short"}},
-		{"production setup enabled", map[string]string{"APP_ENV": "production", "APP_SESSION_SECRET": "0123456789abcdef0123456789abcdef", "APP_SETUP_ENABLED": "true"}},
+		{"production setup enabled without token", map[string]string{"APP_ENV": "production", "APP_SESSION_SECRET": "0123456789abcdef0123456789abcdef", "APP_SETUP_ENABLED": "true"}},
+		{"production setup enabled weak token", map[string]string{"APP_ENV": "production", "APP_SESSION_SECRET": "0123456789abcdef0123456789abcdef", "APP_SETUP_ENABLED": "true", "APP_SETUP_TOKEN": "short"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -1,22 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { GlassPanel } from "../components/GlassPanel";
 import { HomeIcon } from "../components/icons";
 import { useAuth, SetupCompletedError } from "../features/auth/AuthProvider";
+import * as authApi from "../lib/api/auth";
 import { ApiError } from "../lib/api/client";
 import { useI18n } from "../i18n/I18nProvider";
 import styles from "./LoginPage.module.css";
 
 type Mode = "login" | "setup";
 
-const setupVisible = import.meta.env.VITE_ENABLE_SETUP === "true" || import.meta.env.DEV;
-
 interface LocationState {
   from?: { pathname?: string };
 }
 
-/** Auth entry point. Supports sign-in and first-run admin creation. When
- *  already authenticated, bounces to the intended (or home) destination. */
 export function LoginPage() {
   const { status, login, setup } = useAuth();
   const navigate = useNavigate();
@@ -24,16 +21,34 @@ export function LoginPage() {
   const from = (location.state as LocationState | null)?.from?.pathname ?? "/";
   const { t } = useI18n();
 
+  const [serverStatus, setServerStatus] = useState<authApi.AuthStatusDTO | null>(null);
   const [mode, setMode] = useState<Mode>("login");
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [setupToken, setSetupToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const next = await authApi.getAuthStatus(controller.signal);
+        if (controller.signal.aborted) return;
+        setServerStatus(next);
+        setMode(next.initialized ? "login" : "setup");
+      } catch {
+        if (!controller.signal.aborted) setMode("login");
+      }
+    })();
+    return () => controller.abort();
+  }, []);
 
   if (status === "authenticated") {
     return <Navigate to={from} replace />;
   }
+
+  const canSetup = mode === "setup" && serverStatus?.setupEnabled !== false;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,12 +57,16 @@ export function LoginPage() {
     setError(null);
     try {
       if (mode === "login") {
-        await login(username.trim(), password);
+        await login(password);
       } else {
+        if (password !== confirmPassword) {
+          setError(t("login.errorPasswordMismatch"));
+          return;
+        }
         await setup({
-          username: username.trim(),
           password,
-          displayName: displayName.trim() || undefined,
+          confirmPassword,
+          setupToken: setupToken.trim() || undefined,
         });
       }
       navigate(from, { replace: true });
@@ -56,12 +75,6 @@ export function LoginPage() {
     } finally {
       setBusy(false);
     }
-  };
-
-  const switchMode = (next: Mode) => {
-    if (next === "setup" && !setupVisible) return;
-    setMode(next);
-    setError(null);
   };
 
   return (
@@ -78,76 +91,60 @@ export function LoginPage() {
           </span>
         </div>
         <h1 className={styles.title}>
-          {mode === "login" ? t("login.welcomeBack") : t("login.createHomepage")}
+          {mode === "login" ? t("login.welcomeBack") : t("login.createPasswordTitle")}
         </h1>
         <p className={styles.subtitle}>
-          {mode === "login" ? t("login.signInTo") : t("login.setupPrompt")}
+          {mode === "login" ? t("login.signInTo") : t("login.createPasswordPrompt")}
         </p>
 
-        {setupVisible ? (
-          <div className={styles.tabs} role="tablist" aria-label="Auth mode">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === "login"}
-              className={`${styles.tab} ${mode === "login" ? styles.tabActive : ""}`}
-              onClick={() => switchMode("login")}
-            >
-              {t("login.signIn")}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === "setup"}
-              className={`${styles.tab} ${mode === "setup" ? styles.tabActive : ""}`}
-              onClick={() => switchMode("setup")}
-            >
-              {t("login.firstTimeSetup")}
-            </button>
-          </div>
-        ) : null}
-
         <form className={styles.form} onSubmit={submit}>
-          {mode === "setup" ? (
+          {mode === "setup" && serverStatus?.setupTokenRequired ? (
             <label className={styles.field}>
-              <span className={styles.label}>{t("login.displayName")}</span>
+              <span className={styles.label}>{t("login.setupToken")}</span>
               <input
-                type="text"
+                type="password"
                 className={styles.input}
-                placeholder="Winnie"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                autoComplete="name"
+                placeholder="••••••••"
+                value={setupToken}
+                onChange={(e) => setSetupToken(e.target.value)}
+                autoComplete="one-time-code"
+                autoFocus
+                required
               />
             </label>
           ) : null}
-
-          <label className={styles.field}>
-            <span className={styles.label}>{t("login.username")}</span>
-            <input
-              type="text"
-              className={styles.input}
-              placeholder="admin"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              autoComplete="username"
-              autoFocus
-              required
-            />
-          </label>
 
           <label className={styles.field}>
             <span className={styles.label}>{t("login.password")}</span>
             <input
               type="password"
               className={styles.input}
-              placeholder="••••••••"
+              placeholder="••••••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete={mode === "login" ? "current-password" : "new-password"}
+              autoFocus={mode === "login" || !serverStatus?.setupTokenRequired}
               required
             />
           </label>
+
+          {mode === "setup" ? (
+            <>
+              <label className={styles.field}>
+                <span className={styles.label}>{t("login.confirmPassword")}</span>
+                <input
+                  type="password"
+                  className={styles.input}
+                  placeholder="••••••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
+                  required
+                />
+              </label>
+              <p className={styles.requirements}>{t("login.passwordRules")}</p>
+            </>
+          ) : null}
 
           {error ? (
             <p className={styles.error} role="alert">
@@ -155,30 +152,29 @@ export function LoginPage() {
             </p>
           ) : null}
 
-          <button type="submit" className={styles.submit} disabled={busy}>
+          <button type="submit" className={styles.submit} disabled={busy || (!canSetup && mode === "setup")}>
             {busy
               ? mode === "login"
                 ? t("login.signingIn")
                 : t("login.creating")
               : mode === "login"
-                ? t("login.signIn")
-                : t("login.createAccount")}
+                ? t("login.unlock")
+                : t("login.createPassword")}
           </button>
         </form>
 
         <p className={styles.hint}>
           {mode === "login"
-            ? setupVisible
-              ? t("login.hintFirstRun")
-              : t("login.hintLogin")
-            : t("login.hintSetup")}
+            ? t("login.hintLogin")
+            : canSetup
+              ? t("login.hintSetup")
+              : t("login.hintSetupDisabled")}
         </p>
       </GlassPanel>
     </div>
   );
 }
 
-/** Map an API error to a friendly message for the auth form. */
 function errorMessage(err: unknown, t: (k: string) => string): string {
   if (err instanceof SetupCompletedError) {
     return err.reason === "disabled"
@@ -191,6 +187,8 @@ function errorMessage(err: unknown, t: (k: string) => string): string {
         return t("login.errorInvalid");
       case "SETUP_DISABLED":
         return t("login.errorSetupDisabled");
+      case "SETUP_TOKEN_INVALID":
+        return t("login.errorSetupToken");
       case "TOO_MANY_REQUESTS":
         return t("login.errorTooMany");
       case "BAD_REQUEST":

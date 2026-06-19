@@ -226,7 +226,7 @@ func cookieNamed(t *testing.T, rec *httptest.ResponseRecorder, name string) *htt
 
 func setupAndLogin(t *testing.T, s *Server) (*http.Cookie, *http.Cookie) {
 	t.Helper()
-	rec, _ := doJSON(t, s, http.MethodPost, "/api/v1/auth/setup", map[string]string{"username": "admin", "password": "supersecret"})
+	rec, _ := doJSON(t, s, http.MethodPost, "/api/v1/auth/setup", map[string]string{"password": "StrongPass1!", "confirmPassword": "StrongPass1!"})
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("setup: %d %s", rec.Code, rec.Body.String())
 	}
@@ -234,7 +234,7 @@ func setupAndLogin(t *testing.T, s *Server) (*http.Cookie, *http.Cookie) {
 	if setupCSRF.Value == "" || setupCSRF.HttpOnly {
 		t.Fatalf("setup csrf cookie invalid: %+v", setupCSRF)
 	}
-	rec, _ = doJSON(t, s, http.MethodPost, "/api/v1/auth/login", map[string]string{"username": "admin", "password": "supersecret"})
+	rec, _ = doJSON(t, s, http.MethodPost, "/api/v1/auth/login", map[string]string{"password": "StrongPass1!"})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("login: %d %s", rec.Code, rec.Body.String())
 	}

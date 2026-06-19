@@ -28,7 +28,7 @@ type testEnv struct {
 	authSvc    *auth.Service
 	svc        *Service
 	db         *sql.DB
-	cookie     *http.Cookie // populated by loginAdmin()
+	cookie     *http.Cookie // populated by loginOwner()
 	csrfCookie *http.Cookie
 	userID     int64
 }
@@ -78,18 +78,18 @@ func newTestEnv(t *testing.T) *testEnv {
 	return &testEnv{mux: mux, handler: csrfManager.Middleware(mux), authSvc: authSvc, svc: bookmarkSvc, db: database}
 }
 
-// loginAdmin creates the first admin user and logs in, returning the session
+// loginOwner creates the owner password and logs in, returning the session
 // cookie to attach to subsequent requests.
-func (e *testEnv) loginAdmin(t *testing.T, username, password string) *http.Cookie {
+func (e *testEnv) loginOwner(t *testing.T, password string) *http.Cookie {
 	t.Helper()
 	rec := e.post(t, "/api/v1/auth/setup", map[string]string{
-		"username": username, "password": password,
+		"password": password, "confirmPassword": password,
 	})
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("setup: %d %s", rec.Code, rec.Body.String())
 	}
 	rec = e.post(t, "/api/v1/auth/login", map[string]string{
-		"username": username, "password": password,
+		"password": password,
 	})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("login: %d %s", rec.Code, rec.Body.String())
@@ -226,7 +226,7 @@ func TestAllBookmarkEndpointsRequireAuth(t *testing.T) {
 
 func TestBookmarkMutationRequiresCSRF(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 	body, _ := json.Marshal(map[string]string{"name": "Dev"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/categories", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -249,7 +249,7 @@ func TestBookmarkMutationRequiresCSRF(t *testing.T) {
 
 func TestCategoryCRUD(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	// Create
 	rec := e.post(t, "/api/v1/categories", map[string]any{
@@ -290,7 +290,7 @@ func TestCategoryCRUD(t *testing.T) {
 
 func TestCategoryNameUnique(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	if rec := e.post(t, "/api/v1/categories", map[string]any{"name": "Dev"}); rec.Code != http.StatusCreated {
 		t.Fatalf("first create: %d %s", rec.Code, rec.Body.String())
@@ -307,7 +307,7 @@ func TestCategoryNameUnique(t *testing.T) {
 
 func TestTagCRUDAndUniqueness(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	rec := e.post(t, "/api/v1/tags", map[string]any{"name": "Go", "color": "#00add8"})
 	if rec.Code != http.StatusCreated {
@@ -356,7 +356,7 @@ func TestTagCRUDAndUniqueness(t *testing.T) {
 
 func TestBookmarkCRUD(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	// Create a category + two tags to attach.
 	cat := mustData[categoryDTO](t, e.post(t, "/api/v1/categories", map[string]any{"name": "Dev"}))
@@ -419,7 +419,7 @@ func TestBookmarkCRUD(t *testing.T) {
 
 func TestBookmarkRejectsInvalidURL(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 	for _, bad := range []string{"", "not a url", "ftp://x", "example.com"} {
 		rec := e.post(t, "/api/v1/bookmarks", map[string]any{"url": bad})
 		if rec.Code != http.StatusBadRequest {
@@ -430,7 +430,7 @@ func TestBookmarkRejectsInvalidURL(t *testing.T) {
 
 func TestBookmarkDuplicateURLConflict(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	if rec := e.post(t, "/api/v1/bookmarks", map[string]any{"url": "https://go.dev/"}); rec.Code != http.StatusCreated {
 		t.Fatalf("first: %d %s", rec.Code, rec.Body.String())
@@ -450,7 +450,7 @@ func TestBookmarkDuplicateURLConflict(t *testing.T) {
 
 func TestSoftDeleteExcludedFromDefaultAndRestorable(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 	b := mustData[bookmarkDTO](t, e.post(t, "/api/v1/bookmarks", map[string]any{"url": "https://a.example/"}))
 
 	// Soft delete (DELETE -> trash).
@@ -491,7 +491,7 @@ func TestSoftDeleteExcludedFromDefaultAndRestorable(t *testing.T) {
 // (ErrBookmarkURLTaken), not 500.
 func TestRestoreAfterRecreateConflicts409(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	// Create + trash the original (same normalized URL because root path collapses).
 	orig := mustData[bookmarkDTO](t, e.post(t, "/api/v1/bookmarks", map[string]any{"url": "https://go.dev/"}))
@@ -528,7 +528,7 @@ func TestRestoreAfterRecreateConflicts409(t *testing.T) {
 // create and update. None should surface as a 500 FK error.
 func TestCategoryIdValidation(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	// A valid category that admin owns, plus a bookmark under it (happy path).
 	cat := mustData[categoryDTO](t, e.post(t, "/api/v1/categories", map[string]any{"name": "Dev"}))
@@ -560,9 +560,9 @@ func TestCategoryIdValidation(t *testing.T) {
 		}
 	})
 
-	// Provision a second user and a category owned by them.
-	secondID := createUser(t, e.db, "other", "supersecret")
-	secondCookie := loginAs(t, e.handler, "other", "supersecret")
+	// Provision a second internal user_id and a category owned by it.
+	secondID := createUser(t, e.db)
+	secondCookie := sessionForUser(t, e.db, secondID)
 	otherCat := secondUserPost(t, e.handler, secondCookie, "/api/v1/categories", map[string]any{"name": "Foreign"})
 	if otherCat.ID == 0 {
 		t.Fatal("expected second-user category id")
@@ -591,7 +591,7 @@ func TestCategoryIdValidation(t *testing.T) {
 // always valid, so the ownership check does not break the default path.
 func TestCategoryIdZeroAllowsUncategorized(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 	b := mustData[bookmarkDTO](t, e.post(t, "/api/v1/bookmarks", map[string]any{"url": "https://a.example/"}))
 	if b.CategoryID != 0 {
 		t.Fatalf("expected categoryId 0 when omitted, got %d", b.CategoryID)
@@ -605,7 +605,7 @@ func TestCategoryIdZeroAllowsUncategorized(t *testing.T) {
 
 func TestArchiveBehavior(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 	b := mustData[bookmarkDTO](t, e.post(t, "/api/v1/bookmarks", map[string]any{"url": "https://a.example/"}))
 
 	arch := mustData[bookmarkDTO](t, e.post(t, "/api/v1/bookmarks/"+itoa(b.ID)+"/archive", nil))
@@ -624,7 +624,7 @@ func TestArchiveBehavior(t *testing.T) {
 
 func TestOpenIncrementsClickCount(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 	b := mustData[bookmarkDTO](t, e.post(t, "/api/v1/bookmarks", map[string]any{"url": "https://a.example/"}))
 
 	if rec := e.post(t, "/api/v1/bookmarks/"+itoa(b.ID)+"/open", nil); rec.Code != http.StatusOK {
@@ -642,7 +642,7 @@ func TestOpenIncrementsClickCount(t *testing.T) {
 
 func TestSearchAndFilter(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 
 	cat := mustData[categoryDTO](t, e.post(t, "/api/v1/categories", map[string]any{"name": "Dev"}))
 	tag := mustData[tagDTO](t, e.post(t, "/api/v1/tags", map[string]any{"name": "go"}))
@@ -707,7 +707,7 @@ func TestSearchAndFilter(t *testing.T) {
 
 func TestPagination(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 	for i := 0; i < 5; i++ {
 		url := "https://example.com/" + string(rune('a'+i))
 		if rec := e.post(t, "/api/v1/bookmarks", map[string]any{"url": url}); rec.Code != http.StatusCreated {
@@ -733,21 +733,21 @@ func TestPagination(t *testing.T) {
 // Multi-user isolation
 // =====================================================================
 
-// TestUserIsolation verifies that data created by user A is invisible to
-// user B. Because setup is one-shot, user B is simulated by inserting a second
-// user directly and a second session cookie obtained by logging in as them.
+// TestUserIsolation verifies that data created under one internal user_id is
+// invisible to another. Mossdeck exposes only one owner, but the user_id
+// boundary is still enforced by stores and backups.
 func TestUserIsolation(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
-	// admin creates a category and a bookmark.
+	e.loginOwner(t, "StrongPass1!")
+	// Owner creates a category and a bookmark.
 	e.post(t, "/api/v1/categories", map[string]any{"name": "AdminCat"})
 	e.post(t, "/api/v1/bookmarks", map[string]any{"url": "https://admin.example/"})
 
-	// Create a second user directly in the DB and log in as them.
-	secondID := createUser(t, e.db, "other", "supersecret")
-	secondCookie := loginAs(t, e.handler, "other", "supersecret")
+	// Create a second internal user_id directly in the DB and attach a test session.
+	secondID := createUser(t, e.db)
+	secondCookie := sessionForUser(t, e.db, secondID)
 
-	// Second user should see none of admin's categories or bookmarks via API.
+	// Second internal user_id should see none of the owner's categories or bookmarks via API.
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/categories", nil)
 	req.AddCookie(secondCookie)
 	rec := httptest.NewRecorder()
@@ -768,7 +768,7 @@ func TestUserIsolation(t *testing.T) {
 
 func TestListIncludesTags(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 	tag1 := mustData[tagDTO](t, e.post(t, "/api/v1/tags", map[string]any{"name": "a"}))
 	tag2 := mustData[tagDTO](t, e.post(t, "/api/v1/tags", map[string]any{"name": "b"}))
 	b := mustData[bookmarkDTO](t, e.post(t, "/api/v1/bookmarks", map[string]any{
@@ -784,7 +784,7 @@ func TestListIncludesTags(t *testing.T) {
 
 func TestNotFoundErrors(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t, "admin", "supersecret")
+	e.loginOwner(t, "StrongPass1!")
 	for _, path := range []string{
 		"/api/v1/bookmarks/999999",
 		"/api/v1/categories/999999",

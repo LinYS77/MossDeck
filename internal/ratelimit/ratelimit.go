@@ -6,9 +6,8 @@
 // counts failed attempts per key over a fixed window and throttles once a
 // threshold is exceeded.
 //
-// A key is application-defined; the auth layer composes it from the client IP
-// and username so that an attacker cannot bypass the limit by rotating one or
-// the other alone.
+// A key is application-defined; the auth layer currently uses the resolved
+// client IP for Mossdeck's single-owner password lock.
 package ratelimit
 
 import (

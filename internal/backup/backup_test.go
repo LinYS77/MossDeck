@@ -55,7 +55,7 @@ func newTestEnv(t *testing.T) *testEnv {
 	csrfManager := csrf.New(csrf.Config{
 		CookieName: "homepage_csrf", HeaderName: "X-CSRF-Token",
 		SessionCookieName: "homepage_session",
-		CookieSecure: false, CookieSameSite: "lax", TTL: time.Hour,
+		CookieSecure:      false, CookieSameSite: "lax", TTL: time.Hour,
 	})
 	authSvc.SetCSRFManager(csrfManager)
 
@@ -77,13 +77,13 @@ func newTestEnv(t *testing.T) *testEnv {
 	}
 }
 
-func (e *testEnv) loginAdmin(t *testing.T) {
+func (e *testEnv) loginOwner(t *testing.T) {
 	t.Helper()
-	rec := e.post(t, "/api/v1/auth/setup", map[string]string{"username": "admin", "password": "supersecret"})
+	rec := e.post(t, "/api/v1/auth/setup", map[string]string{"password": "StrongPass1!", "confirmPassword": "StrongPass1!"})
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("setup: %d %s", rec.Code, rec.Body.String())
 	}
-	rec = e.post(t, "/api/v1/auth/login", map[string]string{"username": "admin", "password": "supersecret"})
+	rec = e.post(t, "/api/v1/auth/login", map[string]string{"password": "StrongPass1!"})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("login: %d %s", rec.Code, rec.Body.String())
 	}
@@ -202,7 +202,7 @@ func TestImportRequiresAuth(t *testing.T) {
 
 func TestImportRequiresCSRF(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 	body, _ := json.Marshal(map[string]string{"mode": "merge"})
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/backup/import", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -217,7 +217,7 @@ func TestImportRequiresCSRF(t *testing.T) {
 
 func TestExportEmpty(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	rec := e.get(t, "/api/v1/backup/export")
 	if rec.Code != http.StatusOK {
@@ -244,7 +244,7 @@ func TestExportEmpty(t *testing.T) {
 
 func TestExportIncludesAllData(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	// Create categories, tags, bookmarks, read-later.
 	e.post(t, "/api/v1/categories", map[string]any{"name": "Dev", "type": "bookmark"})
@@ -307,7 +307,7 @@ func TestExportIncludesAllData(t *testing.T) {
 
 func TestImportMergeDedup(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	// Create initial data.
 	e.post(t, "/api/v1/categories", map[string]any{"name": "Dev", "type": "bookmark"})
@@ -376,7 +376,7 @@ func TestImportMergeDedup(t *testing.T) {
 
 func TestImportReplaceClearsAndInserts(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	// Create initial data.
 	e.post(t, "/api/v1/categories", map[string]any{"name": "Old", "type": "bookmark"})
@@ -425,21 +425,21 @@ func TestImportReplaceClearsAndInserts(t *testing.T) {
 
 func TestImportReplaceDoesNotAffectOtherUser(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	// Create data for another user.
-	otherUserID := insertUser(t, e.db, "other")
+	otherUserID := insertUser(t, e.db)
 	// Insert bookmark directly for the other user.
 	e.db.ExecContext(context.Background(),
 		`INSERT INTO bookmarks (user_id, url, normalized_url, title, domain, status)
 		 VALUES (?, 'https://other.example', 'https://other.example', 'Other', 'other.example', 'active')`,
 		otherUserID)
 
-	// Replace admin's data.
+	// Replace owner data.
 	backup := ExportData{
 		Version: Version,
 		Data: ExportPayload{
-			Bookmarks: []BookmarkExport{{URL: "https://admin.example", Title: "Admin", Status: "active"}},
+			Bookmarks: []BookmarkExport{{URL: "https://owner.example", Title: "Owner", Status: "active"}},
 		},
 	}
 
@@ -449,12 +449,12 @@ func TestImportReplaceDoesNotAffectOtherUser(t *testing.T) {
 		t.Fatalf("import replace = %d; %s", rec.Code, rec.Body.String())
 	}
 
-	// Verify admin has only their new bookmark.
+	// Verify owner has only the new bookmark.
 	var bms struct{ Total int }
 	rec2 := e.get(t, "/api/v1/bookmarks")
 	bms = data[struct{ Total int }](t, rec2)
 	if bms.Total != 1 {
-		t.Fatalf("admin bookmarks total = %d, want 1", bms.Total)
+		t.Fatalf("owner bookmarks total = %d, want 1", bms.Total)
 	}
 
 	// Verify other user's bookmark still exists.
@@ -470,7 +470,7 @@ func TestImportReplaceDoesNotAffectOtherUser(t *testing.T) {
 
 func TestImportInvalidVersionRejected(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	backup := ExportData{Version: 99}
 	rec := e.send(t, http.MethodPost, "/api/v1/backup/import",
@@ -486,7 +486,7 @@ func TestImportInvalidVersionRejected(t *testing.T) {
 
 func TestImportInvalidURLRejected(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	backup := ExportData{
 		Version: Version,
@@ -507,7 +507,7 @@ func TestImportInvalidURLRejected(t *testing.T) {
 
 func TestImportInvalidModeRejected(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	backup := ExportData{Version: Version}
 	rec := e.send(t, http.MethodPost, "/api/v1/backup/import",
@@ -523,7 +523,7 @@ func TestImportInvalidModeRejected(t *testing.T) {
 
 func TestExportThenImportRoundtrip(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	// Seed data.
 	e.post(t, "/api/v1/categories", map[string]any{"name": "Dev", "type": "bookmark"})
@@ -561,9 +561,9 @@ func TestExportThenImportRoundtrip(t *testing.T) {
 	}
 }
 
-func insertUser(t *testing.T, database *sql.DB, username string) int64 {
+func insertUser(t *testing.T, database *sql.DB) int64 {
 	t.Helper()
-	res, err := database.Exec(`INSERT INTO users (username, password_hash) VALUES (?, ?)`, username, "hash")
+	res, err := database.Exec(`INSERT INTO users (password_hash) VALUES (?)`, "hash")
 	if err != nil {
 		t.Fatalf("insert user: %v", err)
 	}
@@ -577,13 +577,13 @@ func insertUser(t *testing.T, database *sql.DB, username string) int64 {
 
 func TestImportInvalidEnumRejected(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	backup := ExportData{
 		Version: Version,
 		Data: ExportPayload{
-			Categories: []CategoryExport{{Name: "Bad", Type: "invalid"}},
-			Bookmarks:  []BookmarkExport{{URL: "https://x.com", Title: "X", Status: "badstatus"}},
+			Categories:     []CategoryExport{{Name: "Bad", Type: "invalid"}},
+			Bookmarks:      []BookmarkExport{{URL: "https://x.com", Title: "X", Status: "badstatus"}},
 			ReadLaterItems: []ReadLaterItemExport{{URL: "https://y.com", Title: "Y", State: "badstate"}},
 		},
 	}
@@ -604,7 +604,7 @@ func TestImportInvalidEnumRejected(t *testing.T) {
 
 func TestImportInvalidTimeRejected(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	backup := ExportData{
 		Version: Version,
@@ -632,7 +632,7 @@ func TestImportInvalidTimeRejected(t *testing.T) {
 
 func TestMergeDoesNotChangeStatus(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	// Create an active bookmark.
 	e.post(t, "/api/v1/bookmarks", map[string]any{
@@ -673,7 +673,7 @@ func TestMergeDoesNotChangeStatus(t *testing.T) {
 
 func TestMergeDoesNotChangeReadLaterState(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	e.post(t, "/api/v1/read-later", map[string]any{
 		"url": "https://keep-unread.example", "title": "Keep",
@@ -711,7 +711,7 @@ func TestMergeDoesNotChangeReadLaterState(t *testing.T) {
 
 func TestDuplicateURLInBackupRejected(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	backup := ExportData{
 		Version: Version,
@@ -746,7 +746,7 @@ func TestDuplicateURLInBackupRejected(t *testing.T) {
 
 func TestReplacePreservesTrashAndTimestamps(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	// Create an item, trash it, export.
 	e.post(t, "/api/v1/bookmarks", map[string]any{
@@ -799,7 +799,7 @@ func TestReplacePreservesTrashAndTimestamps(t *testing.T) {
 
 func TestDuplicateCategoryNameInBackupRejected(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	backup := ExportData{
 		Version: Version,
@@ -827,7 +827,7 @@ func TestDuplicateCategoryNameInBackupRejected(t *testing.T) {
 
 func TestEmptyCategoryTypeDefaultsToBookmark(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	backup := ExportData{
 		Version: Version,
@@ -856,7 +856,7 @@ func TestEmptyCategoryTypeDefaultsToBookmark(t *testing.T) {
 
 func TestEnumWithSpacesIsNormalized(t *testing.T) {
 	e := newTestEnv(t)
-	e.loginAdmin(t)
+	e.loginOwner(t)
 
 	backup := ExportData{
 		Version: Version,
@@ -905,4 +905,3 @@ func TestEnumWithSpacesIsNormalized(t *testing.T) {
 		t.Fatalf("expected state=reading, got %q", rl.Items[0].State)
 	}
 }
-
