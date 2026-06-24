@@ -30,3 +30,9 @@
 web/node_modules/
 web/dist/
 web/.vite/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
